@@ -1,0 +1,1 @@
+ALTER TABLE public.automations ADD COLUMN IF NOT EXISTS trigger_on_dm BOOLEAN NOT NULL DEFAULT false;
