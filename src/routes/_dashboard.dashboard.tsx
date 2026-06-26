@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Send, TrendingUp, Bot, MessageCircle, Loader2 } from "lucide-react";
-import { getDashboardStats } from "@/server/dashboard.functions";
+import { getDashboardStats } from "@/lib/dashboard.functions";
 import { withAuthFetch } from "@/lib/server-fetch";
 import { useAuth } from "@/lib/auth";
 
