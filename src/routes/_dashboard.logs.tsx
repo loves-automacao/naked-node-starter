@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, XCircle, MinusCircle, Loader2, RefreshCw } from "lucide-react";
-import { listLogs } from "@/server/logs.functions";
+import { listLogs } from "@/lib/logs.functions";
 import { withAuthFetch } from "@/lib/server-fetch";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";

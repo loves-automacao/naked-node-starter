@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { getAutomation, updateAutomation } from "@/server/automations.functions";
+import { getAutomation, updateAutomation } from "@/lib/automations.functions";
 import { withAuthFetch } from "@/lib/server-fetch";
 import { AutomationForm, type AutomationFormValues } from "@/components/automation-form";
 

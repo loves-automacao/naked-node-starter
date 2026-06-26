@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { listAutomations, toggleAutomation, deleteAutomation } from "@/server/automations.functions";
+import { listAutomations, toggleAutomation, deleteAutomation } from "@/lib/automations.functions";
 import { withAuthFetch } from "@/lib/server-fetch";
 
 export const Route = createFileRoute("/_dashboard/automations")({

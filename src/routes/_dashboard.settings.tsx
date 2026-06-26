@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import {
   getSettings, saveZernioApiKey, connectInstagram, disconnectInstagram,
   saveOutgoingWebhook, testConfiguration, clearPublishedOrigin,
-} from "@/server/settings.functions";
+} from "@/lib/settings.functions";
 import { withAuthFetch } from "@/lib/server-fetch";
 
 export const Route = createFileRoute("/_dashboard/settings")({

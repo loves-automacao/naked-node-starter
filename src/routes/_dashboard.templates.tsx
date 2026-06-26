@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { createAutomation } from "@/server/automations.functions";
+import { createAutomation } from "@/lib/automations.functions";
 import { withAuthFetch } from "@/lib/server-fetch";
 import {
   Download,
