@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { detectAndPersistPublicOrigin } from "./detect-origin.server";
+import { detectAndPersistPublicOrigin } from "@/server/detect-origin.server";
 
 export const getDashboardStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

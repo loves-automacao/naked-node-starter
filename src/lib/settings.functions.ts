@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { encryptString, decryptString } from "./crypto.server";
 import { zernioGetInstagramAccount } from "./zernio.server";
-import { detectAndPersistPublicOrigin } from "./detect-origin.server";
+import { detectAndPersistPublicOrigin } from "@/server/detect-origin.server";
 
 export const getSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
