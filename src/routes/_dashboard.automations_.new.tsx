@@ -15,11 +15,30 @@ export const Route = createFileRoute("/_dashboard/automations_/new")({
   component: NewAutomationPage,
 });
 
+// Instagram shortcodes (Cxxxxx) são base64 da media id numérica que o Zernio envia
+// no webhook. Sem essa conversão a automação nunca casaria com o comentário recebido.
+const IG_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+function shortcodeToMediaId(shortcode: string): string | null {
+  let id = 0n;
+  for (const c of shortcode) {
+    const v = IG_ALPHABET.indexOf(c);
+    if (v < 0) return null;
+    id = id * 64n + BigInt(v);
+  }
+  return id.toString();
+}
+
 function extractPostId(input: string): string {
   const trimmed = input.trim();
   if (trimmed === "*") return "*";
+  // Já é um media id numérico (15-20 dígitos)
+  if (/^\d{10,25}$/.test(trimmed)) return trimmed;
   const urlMatch = trimmed.match(/\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/);
-  if (urlMatch) return urlMatch[1];
+  const shortcode = urlMatch ? urlMatch[1] : /^[A-Za-z0-9_-]+$/.test(trimmed) ? trimmed : null;
+  if (shortcode) {
+    const mediaId = shortcodeToMediaId(shortcode);
+    if (mediaId) return mediaId;
+  }
   return trimmed;
 }
 
