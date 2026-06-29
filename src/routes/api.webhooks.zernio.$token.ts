@@ -378,8 +378,25 @@ async function handleWebhookPost({
     return jsonResponse({ ok: true, skipped: "no_api_key_or_account" });
   }
 
+  const IG_ALPHABET =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  const shortcodeToMediaId = (s: string): string | null => {
+    let id = 0n;
+    for (const c of s) {
+      const v = IG_ALPHABET.indexOf(c);
+      if (v < 0) return null;
+      id = id * 64n + BigInt(v);
+    }
+    return id.toString();
+  };
   const matching = (autos ?? []).find((a) => {
-    if (a.instagram_post_id !== "*" && a.instagram_post_id !== comment.postId) return false;
+    const stored = a.instagram_post_id;
+    if (stored !== "*") {
+      const normalized = /^\d{10,25}$/.test(stored)
+        ? stored
+        : shortcodeToMediaId(stored) ?? stored;
+      if (normalized !== comment.postId) return false;
+    }
     if (a.keyword_filter_enabled && !matchesKeywords(comment.text, a.keywords ?? [])) return false;
     return true;
   });
