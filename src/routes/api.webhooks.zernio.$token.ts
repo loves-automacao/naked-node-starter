@@ -517,11 +517,10 @@ async function handleWebhookPost({
           message: matching.followup_message || matching.custom_message,
           quickReplies: quickReplies.length > 0 ? quickReplies : undefined,
           buttons: buttons.length > 0 ? buttons : undefined,
-          // Meta's 24h messaging window isn't opened by a private-reply alone,
-          // so a proactive follow-up to a fresh commenter falls "outside the
-          // allowed window". HUMAN_AGENT tag permits messaging within 7 days
-          // of the last user interaction (the comment counts).
-          useHumanAgentTag: true,
+          // Não usamos HUMAN_AGENT por padrão: a Meta exige App Review e
+          // contas sem essa aprovação recebem 403. Dentro de 24h após a
+          // private-reply o Meta trata o follow-up como RESPONSE
+          // automaticamente, sem precisar de tag.
         };
         try {
           await zernioSendConversationMessage(followupParams);
