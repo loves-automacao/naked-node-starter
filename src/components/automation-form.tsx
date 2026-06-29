@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import type { AutomationInput } from "@/lib/automations.functions";
+import { extractPostId } from "@/lib/instagram-post";
 
 export interface AutomationFormValues {
   name: string;
@@ -89,6 +90,13 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const normalizedPostId = extractPostId(form.instagram_post_id);
+    if (!normalizedPostId) {
+      toast.error(
+        "Post inválido. Use '*' para todos, ou cole URL/ID do post (ex: instagram.com/p/Cxxxx)."
+      );
+      return;
+    }
     if (!form.custom_message.trim()) {
       toast.error("Mensagem da DM é obrigatória");
       return;
@@ -102,7 +110,7 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
     }
     onSubmit({
       name: form.name,
-      instagram_post_id: form.instagram_post_id,
+      instagram_post_id: normalizedPostId,
       instagram_post_type: form.instagram_post_type,
       custom_message: form.custom_message,
       followup_message: form.followup_message,
@@ -126,15 +134,38 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <Card>
-        <CardContent className="flex items-center gap-4 py-4">
-          <Badge variant="outline">
-            {form.instagram_post_id === "*" ? "Todos os posts" : form.instagram_post_type}
-          </Badge>
-          <span className="text-sm text-muted-foreground truncate">
-            ID: {form.instagram_post_id}
-          </span>
+        <CardContent className="flex flex-col gap-3 py-4">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">
+              {form.instagram_post_id === "*" ? "Todos os posts" : form.instagram_post_type}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              Cole a URL do post, o shortcode, o ID numérico, ou <code className="rounded bg-muted px-1">*</code> para todos.
+            </span>
+          </div>
+          <Input
+            value={form.instagram_post_id}
+            onChange={(e) => update("instagram_post_id", e.target.value)}
+            placeholder="https://www.instagram.com/p/Cxxxx ou 17931201761893324"
+          />
+          {(() => {
+            const normalized = extractPostId(form.instagram_post_id);
+            if (!form.instagram_post_id.trim()) return null;
+            if (!normalized) {
+              return (
+                <p className="text-xs text-destructive">Não consegui extrair um ID válido desse valor.</p>
+              );
+            }
+            if (normalized === form.instagram_post_id.trim() || normalized === "*") return null;
+            return (
+              <p className="text-xs text-muted-foreground">
+                Será salvo como <code className="rounded bg-muted px-1">{normalized}</code>
+              </p>
+            );
+          })()}
         </CardContent>
       </Card>
+
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="auto-name">Nome da automação</Label>

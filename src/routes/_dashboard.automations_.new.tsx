@@ -10,37 +10,11 @@ import { Label } from "@/components/ui/label";
 import { createAutomation } from "@/lib/automations.functions";
 import { withAuthFetch } from "@/lib/server-fetch";
 import { AutomationForm, type AutomationFormValues } from "@/components/automation-form";
+import { extractPostId } from "@/lib/instagram-post";
 
 export const Route = createFileRoute("/_dashboard/automations_/new")({
   component: NewAutomationPage,
 });
-
-// Instagram shortcodes (Cxxxxx) são base64 da media id numérica que o Zernio envia
-// no webhook. Sem essa conversão a automação nunca casaria com o comentário recebido.
-const IG_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-function shortcodeToMediaId(shortcode: string): string | null {
-  let id = 0n;
-  for (const c of shortcode) {
-    const v = IG_ALPHABET.indexOf(c);
-    if (v < 0) return null;
-    id = id * 64n + BigInt(v);
-  }
-  return id.toString();
-}
-
-function extractPostId(input: string): string {
-  const trimmed = input.trim();
-  if (trimmed === "*") return "*";
-  // Já é um media id numérico (15-20 dígitos)
-  if (/^\d{10,25}$/.test(trimmed)) return trimmed;
-  const urlMatch = trimmed.match(/\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/);
-  const shortcode = urlMatch ? urlMatch[1] : /^[A-Za-z0-9_-]+$/.test(trimmed) ? trimmed : null;
-  if (shortcode) {
-    const mediaId = shortcodeToMediaId(shortcode);
-    if (mediaId) return mediaId;
-  }
-  return trimmed;
-}
 
 function NewAutomationPage() {
   const navigate = useNavigate();
@@ -60,7 +34,11 @@ function NewAutomationPage() {
 
   function handleConfirmPost() {
     const id = extractPostId(postInput);
-    if (!id) return toast.error("Insira uma URL ou ID do post");
+    if (!id) {
+      return toast.error(
+        "Não consegui extrair o ID do post. Cole a URL completa (ex: instagram.com/p/Cxxxx), o shortcode ou o ID numérico."
+      );
+    }
     setInitialValues({
       name: id === "*" ? "Todos os posts" : `Post ${id.slice(0, 8)}`,
       instagram_post_id: id,
