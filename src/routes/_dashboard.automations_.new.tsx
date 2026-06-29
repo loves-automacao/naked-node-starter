@@ -34,7 +34,11 @@ function NewAutomationPage() {
 
   function handleConfirmPost() {
     const id = extractPostId(postInput);
-    if (!id) return toast.error("Insira uma URL ou ID do post");
+    if (!id) {
+      return toast.error(
+        "Não consegui extrair o ID do post. Cole a URL completa (ex: instagram.com/p/Cxxxx), o shortcode ou o ID numérico."
+      );
+    }
     setInitialValues({
       name: id === "*" ? "Todos os posts" : `Post ${id.slice(0, 8)}`,
       instagram_post_id: id,
