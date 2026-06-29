@@ -90,6 +90,13 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const normalizedPostId = extractPostId(form.instagram_post_id);
+    if (!normalizedPostId) {
+      toast.error(
+        "Post inválido. Use '*' para todos, ou cole URL/ID do post (ex: instagram.com/p/Cxxxx)."
+      );
+      return;
+    }
     if (!form.custom_message.trim()) {
       toast.error("Mensagem da DM é obrigatória");
       return;
@@ -103,7 +110,7 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
     }
     onSubmit({
       name: form.name,
-      instagram_post_id: form.instagram_post_id,
+      instagram_post_id: normalizedPostId,
       instagram_post_type: form.instagram_post_type,
       custom_message: form.custom_message,
       followup_message: form.followup_message,
