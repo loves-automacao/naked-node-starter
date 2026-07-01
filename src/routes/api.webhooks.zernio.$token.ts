@@ -378,28 +378,17 @@ async function handleWebhookPost({
     return jsonResponse({ ok: true, skipped: "no_api_key_or_account" });
   }
 
-  const IG_ALPHABET =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-  const shortcodeToMediaId = (s: string): string | null => {
-    let id = 0n;
-    for (const c of s) {
-      const v = IG_ALPHABET.indexOf(c);
-      if (v < 0) return null;
-      id = id * 64n + BigInt(v);
-    }
-    return id.toString();
-  };
+  // O `instagram_post_id` armazenado é sempre "*" (wildcard) ou o media_id
+  // numérico resolvido via Zernio no momento da criação — casa 1:1 com o
+  // `platformPostId` que o Zernio envia no webhook. Nada de decodificar
+  // shortcode aqui: o base64-decode dá um número diferente do media_id real.
   const matching = (autos ?? []).find((a) => {
     const stored = a.instagram_post_id;
-    if (stored !== "*") {
-      const normalized = /^\d{10,25}$/.test(stored)
-        ? stored
-        : shortcodeToMediaId(stored) ?? stored;
-      if (normalized !== comment.postId) return false;
-    }
+    if (stored !== "*" && stored !== comment.postId) return false;
     if (a.keyword_filter_enabled && !matchesKeywords(comment.text, a.keywords ?? [])) return false;
     return true;
   });
+
 
   if (!matching) {
     await updateLog(logId, {
