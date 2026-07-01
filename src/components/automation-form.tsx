@@ -174,20 +174,23 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
             placeholder="https://www.instagram.com/p/Cxxxx ou 17931201761893324"
           />
           {(() => {
-            const normalized = extractPostId(form.instagram_post_id);
+            const parsed = parsePostInput(form.instagram_post_id);
             if (!form.instagram_post_id.trim()) return null;
-            if (!normalized) {
+            if (!parsed) {
               return (
-                <p className="text-xs text-destructive">Não consegui extrair um ID válido desse valor.</p>
+                <p className="text-xs text-destructive">Formato inválido — cole URL, shortcode, ID numérico ou *.</p>
               );
             }
-            if (normalized === form.instagram_post_id.trim() || normalized === "*") return null;
-            return (
-              <p className="text-xs text-muted-foreground">
-                Será salvo como <code className="rounded bg-muted px-1">{normalized}</code>
-              </p>
-            );
+            if (parsed.kind === "shortcode") {
+              return (
+                <p className="text-xs text-muted-foreground">
+                  Shortcode <code className="rounded bg-muted px-1">{parsed.value}</code> — será resolvido pelo media_id ao salvar (via Zernio).
+                </p>
+              );
+            }
+            return null;
           })()}
+
         </CardContent>
       </Card>
 
