@@ -92,10 +92,15 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
     update("buttons", form.buttons.filter((_, idx) => idx !== i));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  const resolveM = useMutation({
+    mutationFn: (input: string) =>
+      withAuthFetch(() => resolveInstagramMediaId({ data: { input } })),
+  });
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const normalizedPostId = extractPostId(form.instagram_post_id);
-    if (!normalizedPostId) {
+    const parsed = parsePostInput(form.instagram_post_id);
+    if (!parsed) {
       toast.error(
         "Post inválido. Use '*' para todos, ou cole URL/ID do post (ex: instagram.com/p/Cxxxx)."
       );
@@ -112,6 +117,21 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
       toast.error(`Botão "${urlButtonInvalid.title}": URL inválida (deve começar com http:// ou https://)`);
       return;
     }
+
+    // Se for shortcode/URL, resolve pelo media_id via Zernio antes de salvar.
+    let normalizedPostId: string;
+    if (parsed.kind === "shortcode") {
+      try {
+        const { mediaId } = await resolveM.mutateAsync(form.instagram_post_id);
+        normalizedPostId = mediaId;
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Falha ao resolver post na Zernio");
+        return;
+      }
+    } else {
+      normalizedPostId = parsed.kind === "wildcard" ? "*" : parsed.value;
+    }
+
     onSubmit({
       name: form.name,
       instagram_post_id: normalizedPostId,
@@ -134,6 +154,7 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
       trigger_on_dm: form.trigger_on_dm,
     });
   }
+
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
