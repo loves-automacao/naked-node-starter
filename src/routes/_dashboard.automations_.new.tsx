@@ -92,8 +92,14 @@ function NewAutomationPage() {
               </div>
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleConfirmPost} disabled={!postInput.trim()}>Continuar</Button>
+              <Button
+                onClick={handleConfirmPost}
+                disabled={!postInput.trim() || resolveM.isPending}
+              >
+                {resolveM.isPending ? <Loader2 className="size-4 animate-spin" /> : "Continuar"}
+              </Button>
             </div>
+
           </CardContent>
         </Card>
       )}
