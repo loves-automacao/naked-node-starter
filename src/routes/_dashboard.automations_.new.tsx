@@ -33,30 +33,34 @@ function NewAutomationPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const resolveM = useMutation({
+    mutationFn: (input: string) =>
+      withAuthFetch(() => resolveInstagramMediaId({ data: { input } })),
+    onSuccess: ({ mediaId }) => {
+      setInitialValues({
+        name: mediaId === "*" ? "Todos os posts" : `Post ${mediaId.slice(0, 8)}`,
+        instagram_post_id: mediaId,
+        instagram_post_type: "post",
+        custom_message: "",
+        followup_message: "Clica aqui pra receber 👇",
+        quick_replies: [],
+        buttons: [],
+        is_active: true,
+        keyword_filter_enabled: false,
+        keywords: "",
+        delay_min_seconds: 30,
+        delay_max_seconds: 60,
+        trigger_on_dm: false,
+      });
+      setStep("config");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   function handleConfirmPost() {
-    const id = extractPostId(postInput);
-    if (!id) {
-      return toast.error(
-        "Não consegui extrair o ID do post. Cole a URL completa (ex: instagram.com/p/Cxxxx), o shortcode ou o ID numérico."
-      );
-    }
-    setInitialValues({
-      name: id === "*" ? "Todos os posts" : `Post ${id.slice(0, 8)}`,
-      instagram_post_id: id,
-      instagram_post_type: "post",
-      custom_message: "",
-      followup_message: "Clica aqui pra receber 👇",
-      quick_replies: [],
-      buttons: [],
-      is_active: true,
-      keyword_filter_enabled: false,
-      keywords: "",
-      delay_min_seconds: 30,
-      delay_max_seconds: 60,
-      trigger_on_dm: false,
-    });
-    setStep("config");
+    resolveM.mutate(postInput);
   }
+
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
