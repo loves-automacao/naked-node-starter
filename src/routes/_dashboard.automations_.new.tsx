@@ -2,15 +2,16 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Link2 } from "lucide-react";
+import { Link2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createAutomation } from "@/lib/automations.functions";
+import { resolveInstagramMediaId } from "@/lib/instagram-post.functions";
 import { withAuthFetch } from "@/lib/server-fetch";
 import { AutomationForm, type AutomationFormValues } from "@/components/automation-form";
-import { extractPostId } from "@/lib/instagram-post";
+
 
 export const Route = createFileRoute("/_dashboard/automations_/new")({
   component: NewAutomationPage,
