@@ -386,8 +386,9 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
         <Button type="button" variant="outline" onClick={() => navigate({ to: "/automations" })} disabled={submitting}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={submitting}>
-          {submitting ? <Loader2 className="size-4 animate-spin" /> : submitLabel}
+        <Button type="submit" disabled={submitting || resolveM.isPending}>
+          {submitting || resolveM.isPending ? <Loader2 className="size-4 animate-spin" /> : submitLabel}
+
         </Button>
       </div>
     </form>
