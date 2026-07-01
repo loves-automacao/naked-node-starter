@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useMutation } from "@tanstack/react-query";
 import { Plus, X, MessageCircle, Reply, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +10,10 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import type { AutomationInput } from "@/lib/automations.functions";
-import { extractPostId } from "@/lib/instagram-post";
+import { resolveInstagramMediaId } from "@/lib/instagram-post.functions";
+import { withAuthFetch } from "@/lib/server-fetch";
+import { parsePostInput } from "@/lib/instagram-post";
+
 
 export interface AutomationFormValues {
   name: string;
@@ -88,10 +92,15 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
     update("buttons", form.buttons.filter((_, idx) => idx !== i));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  const resolveM = useMutation({
+    mutationFn: (input: string) =>
+      withAuthFetch(() => resolveInstagramMediaId({ data: { input } })),
+  });
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const normalizedPostId = extractPostId(form.instagram_post_id);
-    if (!normalizedPostId) {
+    const parsed = parsePostInput(form.instagram_post_id);
+    if (!parsed) {
       toast.error(
         "Post inválido. Use '*' para todos, ou cole URL/ID do post (ex: instagram.com/p/Cxxxx)."
       );
@@ -108,6 +117,21 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
       toast.error(`Botão "${urlButtonInvalid.title}": URL inválida (deve começar com http:// ou https://)`);
       return;
     }
+
+    // Se for shortcode/URL, resolve pelo media_id via Zernio antes de salvar.
+    let normalizedPostId: string;
+    if (parsed.kind === "shortcode") {
+      try {
+        const { mediaId } = await resolveM.mutateAsync(form.instagram_post_id);
+        normalizedPostId = mediaId;
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Falha ao resolver post na Zernio");
+        return;
+      }
+    } else {
+      normalizedPostId = parsed.kind === "wildcard" ? "*" : parsed.value;
+    }
+
     onSubmit({
       name: form.name,
       instagram_post_id: normalizedPostId,
@@ -131,6 +155,7 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
     });
   }
 
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <Card>
@@ -149,20 +174,23 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
             placeholder="https://www.instagram.com/p/Cxxxx ou 17931201761893324"
           />
           {(() => {
-            const normalized = extractPostId(form.instagram_post_id);
+            const parsed = parsePostInput(form.instagram_post_id);
             if (!form.instagram_post_id.trim()) return null;
-            if (!normalized) {
+            if (!parsed) {
               return (
-                <p className="text-xs text-destructive">Não consegui extrair um ID válido desse valor.</p>
+                <p className="text-xs text-destructive">Formato inválido — cole URL, shortcode, ID numérico ou *.</p>
               );
             }
-            if (normalized === form.instagram_post_id.trim() || normalized === "*") return null;
-            return (
-              <p className="text-xs text-muted-foreground">
-                Será salvo como <code className="rounded bg-muted px-1">{normalized}</code>
-              </p>
-            );
+            if (parsed.kind === "shortcode") {
+              return (
+                <p className="text-xs text-muted-foreground">
+                  Shortcode <code className="rounded bg-muted px-1">{parsed.value}</code> — será resolvido pelo media_id ao salvar (via Zernio).
+                </p>
+              );
+            }
+            return null;
           })()}
+
         </CardContent>
       </Card>
 
@@ -358,8 +386,9 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
         <Button type="button" variant="outline" onClick={() => navigate({ to: "/automations" })} disabled={submitting}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={submitting}>
-          {submitting ? <Loader2 className="size-4 animate-spin" /> : submitLabel}
+        <Button type="submit" disabled={submitting || resolveM.isPending}>
+          {submitting || resolveM.isPending ? <Loader2 className="size-4 animate-spin" /> : submitLabel}
+
         </Button>
       </div>
     </form>

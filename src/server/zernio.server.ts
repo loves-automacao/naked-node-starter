@@ -69,6 +69,55 @@ export async function zernioGetInstagramAccount(
   }
 }
 
+interface ZernioCommentedPost {
+  id: string;
+  platform: string;
+  accountId: string;
+  permalink?: string;
+}
+
+/**
+ * Resolve o Instagram media_id a partir de um shortcode (ex: DAxxxx) usando
+ * a Zernio Comments API. A Zernio lista posts que já receberam comentários
+ * pela conta conectada, expondo `id` (= platformPostId enviado no webhook) e
+ * `permalink` — batemos o shortcode dentro do permalink.
+ *
+ * Limitação: o post precisa ter pelo menos 1 comentário pra aparecer na
+ * listagem. Se não achar, retorna null e a UI orienta o usuário.
+ */
+export async function zernioResolvePostByShortcode(input: {
+  apiKey: string;
+  accountId: string;
+  shortcode: string;
+}): Promise<{ mediaId: string; permalink: string | null } | null> {
+  const target = `/${input.shortcode}`;
+  let cursor: string | undefined;
+  for (let page = 0; page < 10; page++) {
+    const qs = new URLSearchParams({
+      platform: "instagram",
+      accountId: input.accountId,
+      limit: "100",
+      minComments: "0",
+    });
+    if (cursor) qs.set("cursor", cursor);
+    const data = await zernioFetch<{
+      data?: ZernioCommentedPost[];
+      pagination?: { hasMore?: boolean; nextCursor?: string };
+    }>({
+      apiKey: input.apiKey,
+      path: `/inbox/comments?${qs.toString()}`,
+      timeoutMs: 8000,
+    });
+    const hit = (data.data ?? []).find(
+      (p) => p.accountId === input.accountId && (p.permalink ?? "").includes(target)
+    );
+    if (hit) return { mediaId: hit.id, permalink: hit.permalink ?? null };
+    if (!data.pagination?.hasMore || !data.pagination.nextCursor) break;
+    cursor = data.pagination.nextCursor;
+  }
+  return null;
+}
+
 // 1ª mensagem: Private reply ao comentário (não precisa janela de 24h, text only)
 export async function zernioSendPrivateReply(input: {
   apiKey: string;
