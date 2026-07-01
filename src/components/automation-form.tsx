@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useMutation } from "@tanstack/react-query";
 import { Plus, X, MessageCircle, Reply, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +10,10 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import type { AutomationInput } from "@/lib/automations.functions";
-import { extractPostId } from "@/lib/instagram-post";
+import { resolveInstagramMediaId } from "@/lib/instagram-post.functions";
+import { withAuthFetch } from "@/lib/server-fetch";
+import { parsePostInput } from "@/lib/instagram-post";
+
 
 export interface AutomationFormValues {
   name: string;
