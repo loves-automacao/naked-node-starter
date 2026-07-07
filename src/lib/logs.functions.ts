@@ -22,32 +22,11 @@ export const getLogSteps = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const stepsTable = supabase.from("automation_log_steps" as never) as unknown as {
-      select: (c: string) => {
-        eq: (col: string, val: string) => {
-          order: (col: string, opts: { ascending: boolean }) => Promise<{ data: LogStep[] | null; error: { message: string } | null }>;
-        };
-      };
-    };
-    const { data: steps, error } = await stepsTable
+    const { data: steps, error } = await supabase
+      .from("automation_log_steps")
       .select("*")
       .eq("log_id", data.logId)
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
-    return { steps: (steps ?? []) as LogStep[] };
+    return { steps: steps ?? [] };
   });
-
-export interface LogStep {
-  id: string;
-  log_id: string;
-  user_id: string;
-  step: string;
-  label: string;
-  status: "started" | "success" | "failed" | "skipped";
-  duration_ms: number | null;
-  error_message: string | null;
-  api_status_code: number | null;
-  api_response: unknown;
-  context: Record<string, unknown> | null;
-  created_at: string;
-}
