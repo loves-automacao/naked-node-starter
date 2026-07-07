@@ -18,7 +18,6 @@ export function parseZernioError(e: unknown): { message: string; status?: number
     }
   }
   const message = e instanceof Error ? e.message : String(e);
-  // Tenta extrair "Zernio API <status>: <body>" (formato legado)
   const m = message.match(/Zernio API (\d{3}):\s*([\s\S]*)/);
   if (m) {
     const status = Number(m[1]);
@@ -46,6 +45,23 @@ export interface StepLogger {
   startedAt: number;
 }
 
+// Types are regenerated after the migration runs; use a permissive alias so this
+// file compiles both before and after regeneration.
+type StepsTable = {
+  insert: (row: Record<string, unknown>) => {
+    select: (c: string) => {
+      maybeSingle: () => Promise<{ data: { id: string } | null; error: { message: string } | null }>;
+    };
+  };
+  update: (row: Record<string, unknown>) => {
+    eq: (col: string, val: string) => Promise<{ error: { message: string } | null }>;
+  };
+};
+
+function stepsTable(): StepsTable {
+  return supabaseAdmin.from("automation_log_steps" as never) as unknown as StepsTable;
+}
+
 export function createStepLogger(logId: string | null, userId: string): StepLogger {
   const startedAt = Date.now();
 
@@ -60,8 +76,7 @@ export function createStepLogger(logId: string | null, userId: string): StepLogg
     context?: Record<string, unknown> | null;
   }): Promise<string | null> {
     if (!logId) return null;
-    const { data, error } = await supabaseAdmin
-      .from("automation_log_steps")
+    const { data, error } = await stepsTable()
       .insert({
         log_id: logId,
         user_id: userId,
@@ -94,9 +109,7 @@ export function createStepLogger(logId: string | null, userId: string): StepLogg
       context?: Record<string, unknown> | null;
     }
   ): Promise<void> {
-    if (!logId) return;
-    const { error } = await supabaseAdmin
-      .from("automation_log_steps")
+    const { error } = await stepsTable()
       .update({
         status: patch.status,
         duration_ms: patch.duration_ms,
@@ -146,7 +159,6 @@ export function createStepLogger(logId: string | null, userId: string): StepLogg
             context: mergedContext,
           });
         } else {
-          // fallback: sem linha original (raro), insere uma nova
           await insertStep({
             step: name,
             label,
@@ -185,8 +197,12 @@ export function createStepLogger(logId: string | null, userId: string): StepLogg
     },
     async finalize({ stoppedAtStep, totalDurationMs }) {
       if (!logId) return;
-      const { error } = await supabaseAdmin
-        .from("automation_logs")
+      const logsTable = supabaseAdmin.from("automation_logs") as unknown as {
+        update: (row: Record<string, unknown>) => {
+          eq: (col: string, val: string) => Promise<{ error: { message: string } | null }>;
+        };
+      };
+      const { error } = await logsTable
         .update({
           stopped_at_step: stoppedAtStep ?? null,
           total_duration_ms: totalDurationMs,
