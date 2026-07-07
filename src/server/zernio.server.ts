@@ -53,6 +53,8 @@ async function zernioFetch<T>({ apiKey, path, method = "GET", body, timeoutMs = 
     throw err;
   }
   return text ? (JSON.parse(text) as T) : ({} as T);
+}
+
 
 interface ZernioAccount {
   _id: string;
