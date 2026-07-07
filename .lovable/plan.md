@@ -1,28 +1,77 @@
-## Correções
+## Objetivo
 
-### 1. Follow-up: parar de forçar HUMAN_AGENT
-- Em `src/routes/api.webhooks.zernio.$token.ts`, remover `useHumanAgentTag: true` do `followupParams`. A janela de mensagens deve estar aberta pela private reply enviada segundos antes; sem o tag, a Meta trata como RESPONSE dentro da janela de 24h.
-- Manter o suporte ao tag em `zernio.server.ts` (já está parametrizado), apenas não acionar por padrão. Se no futuro você obtiver aprovação da Meta, basta reativar.
-- Atualizar o comentário do bloco explicando a decisão.
+Rastrear cada etapa da execução de uma automação com timestamps, status, duração e erros detalhados — e exibir uma timeline por execução na tela de Logs.
 
-### 2. Post específico: garantir que o ID seja salvo
-A causa é o `extractPostId()` em `src/routes/_dashboard.automations_.new.tsx` fazendo *fallback silencioso* — quando a URL/ID não casa com nenhum padrão (`*`, número, ou shortcode `/p|reel|tv/`), ele devolve a string crua e a automação é criada com lixo (ou, se o input estiver vazio quando o botão é clicado por outro caminho, com `*`). Mudanças:
+## Modelo de dados
 
-- Em `extractPostId()`, retornar `null` quando não conseguir extrair um media ID válido (em vez de devolver `trimmed`).
-- Em `handleConfirmPost()`, abortar com toast claro (`"Não consegui extrair o ID do post. Cole a URL completa, ex: instagram.com/p/Cxxxx ou o ID numérico."`) quando `extractPostId()` retornar `null`.
-- Aceitar também URLs com query string e barra final (`/p/CODE/`, `?utm=...`) — ajustar o regex.
-- Mostrar no card de confirmação (passo 2) o ID **decodificado** (numérico) ao lado do shortcode original, pra você ver na hora que ficou certo antes de salvar.
-- Adicionar campo editável de "Post do Instagram" no `AutomationForm` (visível na edição também), com o mesmo `extractPostId`, pra você conseguir corrigir automações existentes sem recriar.
+Nova tabela `automation_log_steps` (etapas), mantendo `automation_logs` como o "cabeçalho" da execução:
 
-### Validação
-- Criar uma automação nova colando uma URL real e confirmar que o `instagram_post_id` salvo no banco bate com o `platformPostId` que o webhook recebe.
-- Disparar um comentário e conferir nos logs que (a) o match acontece e (b) o follow-up sai com `sent` em vez de 403.
+- `automation_log_steps`: `id`, `log_id` (FK → automation_logs), `user_id`, `step` (text: `webhook_received`, `keyword_matched`, `private_reply`, `find_conversation`, `followup`, `outgoing_webhook`, `follower_gate`, `dm_trigger`, `content_delivery`, `automation_finished`, etc.), `label` (texto legível pt-BR), `status` (`started` | `success` | `failed` | `skipped`), `duration_ms` (int), `error_message` (text), `api_status_code` (int), `api_response` (jsonb — corpo curto/resumo da resposta Instagram/Zernio), `context` (jsonb — parâmetros da operação: conversationId, postId, quickReplies count, etc.), `created_at`.
 
-### Detalhes técnicos
-Arquivos tocados:
-- `src/routes/api.webhooks.zernio.$token.ts` — remover `useHumanAgentTag: true` (linhas 520-524).
-- `src/routes/_dashboard.automations_.new.tsx` — `extractPostId` retorna `null` em falha; `handleConfirmPost` valida; regex aceita trailing slash/query.
-- `src/components/automation-form.tsx` — adicionar input editável de post ID + helper de decodificação compartilhado.
-- `src/routes/_dashboard.automations_.$id.edit.tsx` — passar `instagram_post_id` editável (já vem do DB, só precisa do input no form).
+Colunas adicionadas em `automation_logs`:
+- `event_type` (text — `comment.received`, `message.received`, ...)
+- `trigger_keyword` (text — palavra que casou, quando houver)
+- `stopped_at_step` (text — nome da última etapa em falha)
+- `total_duration_ms` (int)
+- `finished_at` (timestamp)
 
-Sem mudanças no banco. Sem migrations.
+RLS: SELECT scoped ao `user_id` para authenticated; INSERT/UPDATE só via service_role (webhook usa `supabaseAdmin`). Índice em `(log_id, created_at)` para ordenar a timeline.
+
+## Instrumentação do webhook
+
+`src/routes/api.webhooks.zernio.$token.ts`:
+
+- Criar helper `createStepLogger(logId, userId)` que expõe:
+  - `step(name, label, context?)` → retorna `{ success(apiRes?), fail(err, apiRes?), skip(reason) }`, cada um insere/atualiza a linha `automation_log_steps` com `duration_ms` calculado desde o início do step.
+  - Todas as inserções via `supabaseAdmin`, non-blocking (Promise coletada em array e `await Promise.allSettled` no fim).
+- Instrumentar todos os caminhos:
+  1. `webhook_received` (payload parse, event_type).
+  2. `keyword_matched` / `no_match` (registra qual palavra casou → salva em `automation_logs.trigger_keyword`).
+  3. `private_reply` (1ª DM) — captura status/msg de erro da Zernio (parsear `Zernio API 4xx: {...}` em `zernio.server.ts`).
+  4. `find_conversation` (com retry como etapa própria).
+  5. `followup` (2ª mensagem com botões/quickReplies — grava counts no `context`).
+  6. `outgoing_webhook`.
+  7. `automation_finished` — grava `stopped_at_step`, `total_duration_ms`, `finished_at` no header.
+- Substituir mensagens genéricas (`deliver:`, `dm_trigger:`, `follower_gate:`) por labels em pt-BR e erros contendo a resposta bruta da API.
+- `zernio.server.ts`: mudar `zernioFetch` para lançar um erro tipado com `{ status, body }` para o step logger capturar `api_status_code` e `api_response` sem regex.
+
+## Server functions
+
+`src/lib/logs.functions.ts`:
+- Manter `listLogs` (cabeçalhos).
+- Adicionar `getLogSteps({ logId })` com `requireSupabaseAuth` → retorna steps ordenados.
+
+## UI — Tela de Logs
+
+`src/routes/_dashboard.logs.tsx` reescrito como lista de execuções com detalhe expansível:
+
+- Lista à esquerda (ou linhas colapsáveis): @usuário, evento, status geral, hora, duração total, badge da etapa onde parou (quando `failed`).
+- Ao clicar/expandir: timeline vertical estilo:
+  ```
+  ● 10:15:01  Automação iniciada                        (event: comment.received)
+  ● 10:15:02  Palavra-chave "ebook" encontrada
+  ● 10:15:02  Enviando primeira DM…                    started
+  ✓ 10:15:03  Primeira DM enviada com sucesso          892ms
+  ● 10:15:03  Buscando conversa…
+  ✓ 10:15:03  Conversa encontrada                      210ms
+  ● 10:15:03  Enviando follow-up…
+  ✗ 10:15:04  Instagram: "Conversation not found"      HTTP 400 · 640ms
+  ⨯ 10:15:04  Automação encerrada em: followup
+  ```
+- Cada linha do erro mostra `api_status_code`, trecho do `api_response` e o `context` (botões=2, quickReplies=3, conversationId=…) num `<details>`.
+- Ícones/coloração por status: cinza (started), verde (success), vermelho (failed), amarelo (skipped).
+- Realtime: subscribe em `automation_log_steps` filtrado por `user_id` para atualizar a timeline aberta ao vivo.
+- Botão "Copiar diagnóstico" que serializa toda a timeline pra colar no suporte.
+
+## Arquivos
+
+- **Migration**: nova tabela + colunas + RLS + índice.
+- **Editados**: `src/routes/api.webhooks.zernio.$token.ts`, `src/server/zernio.server.ts` (erro tipado), `src/lib/logs.functions.ts`, `src/routes/_dashboard.logs.tsx`.
+- **Novos**: `src/lib/step-logger.server.ts` (helper), `src/components/log-timeline.tsx` (UI da timeline).
+
+## Validação
+
+1. Disparar automação com comentário → conferir sequência completa `webhook_received → keyword_matched → private_reply(success) → find_conversation(success) → followup(success) → automation_finished`.
+2. Forçar erro de follow-up (post sem janela 24h) → timeline mostra `followup` failed com HTTP status + mensagem Meta e header com `stopped_at_step="followup"`.
+3. Comentário que não casa keyword → único step `keyword_matched` com status `skipped` e razão.
+4. Realtime: com a página aberta, um novo webhook aparece sem refresh.

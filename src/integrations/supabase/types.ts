@@ -14,17 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      automation_log_steps: {
+        Row: {
+          api_response: Json | null
+          api_status_code: number | null
+          context: Json | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          label: string
+          log_id: string
+          status: string
+          step: string
+          user_id: string
+        }
+        Insert: {
+          api_response?: Json | null
+          api_status_code?: number | null
+          context?: Json | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          label: string
+          log_id: string
+          status?: string
+          step: string
+          user_id: string
+        }
+        Update: {
+          api_response?: Json | null
+          api_status_code?: number | null
+          context?: Json | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          label?: string
+          log_id?: string
+          status?: string
+          step?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_log_steps_log_id_fkey"
+            columns: ["log_id"]
+            isOneToOne: false
+            referencedRelation: "automation_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_logs: {
         Row: {
           automation_id: string | null
           comment_text: string | null
           created_at: string
           error: string | null
+          event_type: string | null
+          finished_at: string | null
           id: string
           instagram_post_id: string | null
           instagram_user: string | null
           message_sent: string | null
           status: string
+          stopped_at_step: string | null
+          total_duration_ms: number | null
+          trigger_keyword: string | null
           user_id: string
         }
         Insert: {
@@ -32,11 +90,16 @@ export type Database = {
           comment_text?: string | null
           created_at?: string
           error?: string | null
+          event_type?: string | null
+          finished_at?: string | null
           id?: string
           instagram_post_id?: string | null
           instagram_user?: string | null
           message_sent?: string | null
           status?: string
+          stopped_at_step?: string | null
+          total_duration_ms?: number | null
+          trigger_keyword?: string | null
           user_id: string
         }
         Update: {
@@ -44,11 +107,16 @@ export type Database = {
           comment_text?: string | null
           created_at?: string
           error?: string | null
+          event_type?: string | null
+          finished_at?: string | null
           id?: string
           instagram_post_id?: string | null
           instagram_user?: string | null
           message_sent?: string | null
           status?: string
+          stopped_at_step?: string | null
+          total_duration_ms?: number | null
+          trigger_keyword?: string | null
           user_id?: string
         }
         Relationships: [
