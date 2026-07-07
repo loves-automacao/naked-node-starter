@@ -38,10 +38,21 @@ async function zernioFetch<T>({ apiKey, path, method = "GET", body, timeoutMs = 
   }
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(`Zernio API ${res.status}: ${text || res.statusText}`);
+    let body: unknown = text;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      /* keep as raw text */
+    }
+    const err = new Error(`Zernio API ${res.status}: ${text || res.statusText}`) as Error & {
+      apiStatus: number;
+      apiBody: unknown;
+    };
+    err.apiStatus = res.status;
+    err.apiBody = body;
+    throw err;
   }
   return text ? (JSON.parse(text) as T) : ({} as T);
-}
 
 interface ZernioAccount {
   _id: string;
