@@ -110,6 +110,12 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
       toast.error("Mensagem da DM é obrigatória");
       return;
     }
+    if (form.buttons.length > 0 && form.followup_message.length > 80) {
+      toast.error(
+        "Com botões nativos, a mensagem de follow-up precisa ter até 80 caracteres (limite do Instagram)."
+      );
+      return;
+    }
     const urlButtonInvalid = form.buttons.find(
       (b) => b.title.trim() && b.type === "web_url" && !/^https?:\/\/.+/.test(b.url ?? "")
     );
@@ -240,13 +246,32 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
           Enviada logo após a DM privada. Suporta quick replies e botões nativos. Opcional.
         </p>
 
-        <textarea
-          placeholder="Clica no botão abaixo pra receber 👇"
-          value={form.followup_message}
-          onChange={(e) => update("followup_message", e.target.value)}
-          rows={2}
-          className="flex w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-        />
+        <div className="flex flex-col gap-1">
+          <textarea
+            placeholder="Clica no botão abaixo pra receber 👇"
+            value={form.followup_message}
+            onChange={(e) => {
+              const val = form.buttons.length > 0
+                ? e.target.value.slice(0, 80)
+                : e.target.value;
+              update("followup_message", val);
+            }}
+            maxLength={form.buttons.length > 0 ? 80 : undefined}
+            rows={2}
+            className="flex w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+          />
+          {form.buttons.length > 0 && (
+            <div className="flex items-center justify-between">
+              <p className={`text-xs ${form.followup_message.length > 80 ? "text-destructive" : "text-muted-foreground"}`}>
+                Com botões nativos, o Instagram limita esta mensagem a 80 caracteres.
+              </p>
+              <span className={`text-xs tabular-nums ${form.followup_message.length > 80 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                {form.followup_message.length}/80
+              </span>
+            </div>
+          )}
+        </div>
+
 
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
@@ -259,20 +284,25 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
             <span className="text-xs text-muted-foreground">{form.quick_replies.length}/13</span>
           </div>
           {form.quick_replies.map((qr, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <Input
-                placeholder="Texto do botão (ex: Quero o link!)"
-                value={qr.title}
-                onChange={(e) => {
-                  const title = e.target.value.slice(0, 20);
-                  updateQuickReplyTitle(i, title);
-                }}
-                maxLength={20}
-                className="flex-1"
-              />
-              <Button type="button" variant="ghost" size="icon" onClick={() => removeQuickReply(i)}>
-                <X className="size-4" />
-              </Button>
+            <div key={i} className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Texto do botão (ex: Quero o link!)"
+                  value={qr.title}
+                  onChange={(e) => {
+                    const title = e.target.value.slice(0, 20);
+                    updateQuickReplyTitle(i, title);
+                  }}
+                  maxLength={20}
+                  className="flex-1"
+                />
+                <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">
+                  {qr.title.length}/20
+                </span>
+                <Button type="button" variant="ghost" size="icon" onClick={() => removeQuickReply(i)}>
+                  <X className="size-4" />
+                </Button>
+              </div>
             </div>
           ))}
           {form.quick_replies.length < 13 && (
@@ -321,6 +351,9 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
                     maxLength={20}
                     className="flex-1"
                   />
+                  <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">
+                    {btn.title.length}/20
+                  </span>
                   <Button type="button" variant="ghost" size="icon" onClick={() => removeButton(i)}>
                     <X className="size-4" />
                   </Button>
