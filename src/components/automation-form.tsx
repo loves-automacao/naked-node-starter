@@ -110,6 +110,12 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
       toast.error("Mensagem da DM é obrigatória");
       return;
     }
+    if (form.buttons.length > 0 && form.followup_message.length > 80) {
+      toast.error(
+        "Com botões nativos, a mensagem de follow-up precisa ter até 80 caracteres (limite do Instagram)."
+      );
+      return;
+    }
     const urlButtonInvalid = form.buttons.find(
       (b) => b.title.trim() && b.type === "web_url" && !/^https?:\/\/.+/.test(b.url ?? "")
     );
