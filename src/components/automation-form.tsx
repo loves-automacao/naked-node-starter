@@ -349,6 +349,8 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
                       update("buttons", u);
                     }}
                     maxLength={20}
+                    className="flex-1"
+                  />
                   <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">
                     {btn.title.length}/20
                   </span>
