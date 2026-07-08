@@ -284,20 +284,25 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
             <span className="text-xs text-muted-foreground">{form.quick_replies.length}/13</span>
           </div>
           {form.quick_replies.map((qr, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <Input
-                placeholder="Texto do botão (ex: Quero o link!)"
-                value={qr.title}
-                onChange={(e) => {
-                  const title = e.target.value.slice(0, 20);
-                  updateQuickReplyTitle(i, title);
-                }}
-                maxLength={20}
-                className="flex-1"
-              />
-              <Button type="button" variant="ghost" size="icon" onClick={() => removeQuickReply(i)}>
-                <X className="size-4" />
-              </Button>
+            <div key={i} className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Texto do botão (ex: Quero o link!)"
+                  value={qr.title}
+                  onChange={(e) => {
+                    const title = e.target.value.slice(0, 20);
+                    updateQuickReplyTitle(i, title);
+                  }}
+                  maxLength={20}
+                  className="flex-1"
+                />
+                <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">
+                  {qr.title.length}/20
+                </span>
+                <Button type="button" variant="ghost" size="icon" onClick={() => removeQuickReply(i)}>
+                  <X className="size-4" />
+                </Button>
+              </div>
             </div>
           ))}
           {form.quick_replies.length < 13 && (
