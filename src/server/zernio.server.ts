@@ -212,25 +212,63 @@ export async function zernioSendConversationMessage(input: {
   };
 
   if (input.quickReplies && input.quickReplies.length > 0) {
+    for (let i = 0; i < input.quickReplies.length; i++) {
+      const q = input.quickReplies[i];
+      const idx = i + 1;
+      let reason: string | null = null;
+      if (!q || typeof q.title !== "string") reason = `Quick reply #${idx}: campo obrigatório ausente: title`;
+      else if (q.title.trim().length === 0) reason = `Quick reply #${idx}: "title" vazio`;
+      else if (q.title.length > 20) reason = `Quick reply #${idx}: "title" possui ${q.title.length} caracteres. Máx 20.`;
+      if (reason) {
+        const err = new Error(`Quick reply inválido — ${reason}`) as Error & { apiStatus: number; apiBody: unknown };
+        err.apiStatus = 0;
+        err.apiBody = { validation: reason, quickReply: q };
+        throw err;
+      }
+    }
     body.quickReplies = input.quickReplies.slice(0, 13);
   }
 
   if (input.buttons && input.buttons.length > 0) {
-    const mappedButtons = input.buttons.slice(0, 3).map((b) => {
-      // No contrato da Zernio: "url" pra link externo (eles traduzem pra web_url
-      // internamente antes de mandar pro Meta). "web_url" direto falha com 400.
-      if (b.type === "web_url" || b.type === "url") {
-        return { type: "url", title: b.title, url: b.url ?? "" };
+    // Valida cada botão ANTES de montar payload — Meta rejeita title vazio/>80
+    for (let i = 0; i < Math.min(input.buttons.length, 3); i++) {
+      const b = input.buttons[i];
+      const idx = i + 1;
+      let reason: string | null = null;
+      if (!b || typeof b.title !== "string") reason = `Botão #${idx}: campo obrigatório ausente: title`;
+      else if (b.title.trim().length === 0) reason = `Botão #${idx}: o campo "title" está vazio`;
+      else if (b.title.length > 80) reason = `Botão #${idx}: o campo "title" possui ${b.title.length} caracteres. O máximo permitido é 80.`;
+      else if ((b.type === "web_url" || b.type === "url") && (!b.url || b.url.trim().length === 0))
+        reason = `Botão #${idx}: URL ausente para botão de link`;
+      if (reason) {
+        const err = new Error(`Botão inválido — ${reason}`) as Error & { apiStatus: number; apiBody: unknown };
+        err.apiStatus = 0;
+        err.apiBody = { validation: reason, button: b };
+        throw err;
       }
-      return { type: "postback", title: b.title, payload: b.payload ?? b.title };
+    }
+
+    const mappedButtons = input.buttons.slice(0, 3).map((b) => {
+      const title = b.title.trim().slice(0, 80);
+      if (b.type === "web_url" || b.type === "url") {
+        return { type: "url", title, url: b.url ?? "" };
+      }
+      return { type: "postback", title, payload: b.payload ?? b.title };
     });
+
+    // Meta exige element.title ≤80 chars. Trunca em vez de falhar quando a
+    // mensagem legítima é longa (era a causa do "Template element title ... 80 or less").
+    const rawElementTitle = (input.templateTitle || input.message || "👇").trim() || "👇";
+    const elementTitle = rawElementTitle.length > 80 ? rawElementTitle.slice(0, 77) + "..." : rawElementTitle;
+    const rawSubtitle = input.templateSubtitle?.trim();
+    const subtitle = rawSubtitle && rawSubtitle.length > 80 ? rawSubtitle.slice(0, 77) + "..." : rawSubtitle;
 
     body.template = {
       type: "generic",
       elements: [
         {
-          title: input.templateTitle || input.message || "👇",
-          subtitle: input.templateSubtitle,
+          title: elementTitle,
+          subtitle,
           buttons: mappedButtons,
         },
       ],
@@ -241,6 +279,12 @@ export async function zernioSendConversationMessage(input: {
     body.messagingType = "MESSAGE_TAG";
     body.messageTag = "HUMAN_AGENT";
   }
+
+  // Payload completo logado antes do envio pra facilitar diagnóstico.
+  console.log(
+    "[zernio] sendConversationMessage payload:",
+    JSON.stringify({ conversationId: input.conversationId, body }, null, 2)
+  );
 
   return zernioFetch({
     apiKey: input.apiKey,
