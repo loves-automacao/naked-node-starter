@@ -246,7 +246,7 @@ async function handleMessageEvent({
   const senderUsername = msg.sender?.username;
   const payloadFromClick = msg.quickReply?.payload;
   const conversationId = msg.conversationId;
-  const isFollower = msg.sender?.instagramProfile?.isFollower ?? null;
+  // isFollower disponível em msg.sender?.instagramProfile?.isFollower — não usado no fluxo global.
 
   const validate = await logger.step("validate_message", "Validando mensagem recebida", {
     has_sender: !!senderId,
