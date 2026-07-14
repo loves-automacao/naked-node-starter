@@ -1,32 +1,36 @@
-## Aviso visual de limite de caracteres no formulário
+## Objetivo
 
-O erro `Template element title is required and must be 80 characters or less` acontece porque, quando há **botões nativos**, o Instagram usa o campo `followup_message` como *título do template* — que tem limite de **80 caracteres**. Hoje o campo não mostra esse limite, então o usuário digita mensagens longas sem perceber.
+No fluxo de DMs do webhook (`handleMessageEvent` em `src/routes/api.webhooks.zernio.$token.ts`), a checagem `isFollower === false` interrompe o processamento antes mesmo de buscar automações e envia uma mensagem fixa de "siga para ver o conteúdo". Isso causa dois problemas:
 
-### Mudanças em `src/components/automation-form.tsx`
+- DMs de não-seguidores geram log sem `automation_id` (não aparecem vinculadas a nenhuma automação da aba).
+- A regra é global e não configurável — nenhuma automação atual tem toggle de "somente seguidores".
 
-1. **Follow-up (`followup_message`)**
-   - Adicionar contador `X/80` no canto do label quando houver botões nativos configurados (`form.buttons.length > 0`).
-   - Quando não houver botões: contador some (não há limite prático).
-   - Ao ultrapassar 80 chars **com botões**: contador em vermelho + texto de aviso abaixo do textarea: *"Com botões nativos, a mensagem precisa ter até 80 caracteres (limite do Instagram)."*
-   - Aplicar `maxLength={80}` apenas quando `form.buttons.length > 0` para bloquear na digitação.
+## Mudança
 
-2. **Quick replies (título do botão)**
-   - Já tem `maxLength={20}`, mas sem feedback visual. Adicionar contador `X/20` ao lado de cada input.
+Arquivo único: `src/routes/api.webhooks.zernio.$token.ts`.
 
-3. **Botões nativos (título)**
-   - Já tem `maxLength={20}`. Adicionar contador `X/20` ao lado do input do título.
+Remover o bloco `if (isFollower === false) { … follower_gate … }` (linhas ~308–333), incluindo o step `follower_gate`. O fluxo passa direto para:
 
-4. **Submit guard**
-   - No `handleSubmit`, se `buttons.length > 0 && followup_message.length > 80`: `toast.error` e não envia (evita chegar à API).
+1. `payloadFromClick` (quick reply) — inalterado.
+2. Busca de automação `trigger_on_dm` por keyword — inalterada.
+3. Envio (`dm_trigger_send`) ou skip (`no_dm_trigger_match`) — inalterados.
 
-### Detalhes técnicos
+Consequências:
 
-- Sem mudanças em backend / server / logs — o backend já valida e trunca (mudança da rodada anterior). Este passo é puramente UI para prevenir o erro na origem.
-- Contadores implementados como `<span className="text-xs text-muted-foreground">` com classe condicional `text-destructive` quando excede.
-- Nenhum arquivo novo. Só edições em `src/components/automation-form.tsx`.
+- Não-seguidores que mandam DM sem match de keyword: log `skipped` em `find_dm_trigger`, nenhuma mensagem enviada (comportamento correto, sem spam).
+- Não-seguidores com keyword que casa: automação executa normalmente, log com `automation_id` correto.
+- `isFollower` continua sendo lido do payload para uso futuro, mas não bloqueia mais nada.
 
-### Validação
+## Fora do escopo
 
-- Digitar 90 chars no follow-up com 1 botão nativo → contador fica vermelho, botão de salvar bloqueia com toast.
-- Remover todos os botões → contador some, campo aceita texto longo normalmente.
-- Contador nos quick replies e títulos de botões atualiza ao digitar.
+Não adicionar campo `followers_only` nas automações agora — nenhuma automação existente usa e o usuário pediu que seja opcional "se existir". Fica para pedido futuro específico, quando aí sim adicionaríamos coluna no schema + toggle no formulário + checagem por-automação após o match de keyword.
+
+## Fluxo antes vs depois
+
+```text
+antes:  validar → settings → decrypt → [isFollower===false ⇒ follower_gate STOP]
+        → quick_reply? → find_dm_trigger → send
+
+depois: validar → settings → decrypt
+        → quick_reply? → find_dm_trigger → send
+```
