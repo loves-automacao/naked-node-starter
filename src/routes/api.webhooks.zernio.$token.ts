@@ -305,32 +305,10 @@ async function handleMessageEvent({
     });
   }
 
-  if (isFollower === false) {
-    const s = await logger.step("follower_gate", "Usuário não é seguidor — pedindo follow");
-    try {
-      const res = await zernioSendConversationMessage({
-        apiKey,
-        accountId: settings.zernio_account_id,
-        conversationId,
-        message: "Esse conteúdo é exclusivo para seguidores! Me segue e clica em 'Pronto' de novo 😉",
-        quickReplies: [{ title: "Pronto! ✅", payload: "SEND_CONTENT" }],
-      });
-      await s.success({ apiResponse: res });
-      await updateLog(logId, { message_sent: "follower_gate" });
-      return finish(logger, logId, {
-        status: "sent",
-        responseBody: { action: "follower_gate" },
-      });
-    } catch (e) {
-      const p = await s.fail(e);
-      return finish(logger, logId, {
-        status: "failed",
-        stoppedAtStep: "follower_gate",
-        error: friendlyZernioError(p.message),
-        responseBody: { action: "follower_gate_failed" },
-      });
-    }
-  }
+  // Nota: `isFollower` fica disponível no payload mas não bloqueia mais o fluxo.
+  // Regras de "somente seguidores" devem ser opt-in por automação, não globais.
+
+
 
   if (payloadFromClick) {
     const findAuto = await logger.step("find_automation", "Buscando automação para entregar conteúdo", {
