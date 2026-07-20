@@ -1,11 +1,6 @@
 {
   "name": "tanstack_start_ts",
   "private": true,
-  "packageManager": "npm@11.9.0",
-  "engines": {
-    "node": ">=22 <25",
-    "npm": ">=11 <12"
-  },
   "sideEffects": false,
   "type": "module",
   "scripts": {
@@ -14,12 +9,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build"
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
@@ -88,13 +78,13 @@
     "@vitejs/plugin-react": "^5.0.4",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-prettier": "^5.2.6",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^7.3.1",
-    "vitest": "^3.2.7"
+    "vite": "^7.3.1"
   }
 }

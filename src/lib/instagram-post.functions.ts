@@ -24,7 +24,7 @@ export const resolveInstagramMediaId = createServerFn({ method: "POST" })
     const parsed = parsePostInput(data.input);
     if (!parsed) {
       throw new Error(
-        "Formato inválido. Cole a URL do post (ex: instagram.com/p/Cxxxx), o shortcode, o ID numérico ou '*'.",
+        "Formato inválido. Cole a URL do post (ex: instagram.com/p/Cxxxx), o shortcode, o ID numérico ou '*'."
       );
     }
     if (parsed.kind === "wildcard") return { mediaId: "*", permalink: null };
@@ -39,7 +39,7 @@ export const resolveInstagramMediaId = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!settings?.zernio_api_key_encrypted || !settings?.zernio_account_id) {
       throw new Error(
-        "Conecte sua conta Zernio em Settings antes de criar automação por shortcode.",
+        "Conecte sua conta Zernio em Settings antes de criar automação por shortcode."
       );
     }
     const apiKey = await decryptString(settings.zernio_api_key_encrypted);
@@ -50,7 +50,7 @@ export const resolveInstagramMediaId = createServerFn({ method: "POST" })
     });
     if (!resolved) {
       throw new Error(
-        "Post não encontrado na Zernio. Ele precisa ter pelo menos 1 comentário pra ser listado — comente uma vez e tente de novo, ou cole o media_id numérico direto.",
+        "Post não encontrado na Zernio. Ele precisa ter pelo menos 1 comentário pra ser listado — comente uma vez e tente de novo, ou cole o media_id numérico direto."
       );
     }
     return resolved;

@@ -51,7 +51,7 @@ function EditAutomationPage() {
   const initialValues: AutomationFormValues = {
     name: a.name,
     instagram_post_id: a.instagram_post_id,
-    instagram_post_type: a.instagram_post_type === "story" ? "story" : "post",
+    instagram_post_type: (a.instagram_post_type === "story" ? "story" : "post"),
     custom_message: a.custom_message || "",
     followup_message: a.followup_message || "",
     quick_replies: Array.isArray(a.quick_replies)

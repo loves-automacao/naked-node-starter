@@ -1,15 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  CheckCircle2,
-  XCircle,
-  MinusCircle,
-  Loader2,
-  RefreshCw,
-  ChevronDown,
-  ChevronRight,
-} from "lucide-react";
+import { CheckCircle2, XCircle, MinusCircle, Loader2, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
 import { listLogs } from "@/lib/logs.functions";
 import { withAuthFetch } from "@/lib/server-fetch";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,7 +30,7 @@ function LogsPage() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "automation_logs", filter: `user_id=eq.${user.id}` },
-        () => qc.invalidateQueries({ queryKey: ["logs"] }),
+        () => qc.invalidateQueries({ queryKey: ["logs"] })
       )
       .subscribe();
     return () => {
@@ -54,11 +46,15 @@ function LogsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Logs</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Histórico em tempo real das execuções. Clique em um item pra ver a timeline detalhada.{" "}
-            {logs.length} eventos recentes.
+            Histórico em tempo real das execuções. Clique em um item pra ver a timeline detalhada. {logs.length} eventos recentes.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => refetch()}
+          disabled={isFetching}
+        >
           <RefreshCw className={isFetching ? "animate-spin" : ""} />
           Sincronizar
         </Button>
@@ -105,9 +101,7 @@ function LogsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-medium">
-                        @{log.instagram_user ?? "anônimo"}
-                      </span>
+                      <span className="text-sm font-medium">@{log.instagram_user ?? "anônimo"}</span>
                       <Badge variant="outline" className="text-[10px]">
                         {log.status}
                       </Badge>

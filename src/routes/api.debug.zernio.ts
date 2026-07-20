@@ -4,7 +4,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { decryptString } from "@/server/crypto.server";
-import { getServerSupabasePublicConfig, getZernioApiBase } from "@/config/env.server";
+
+const ZERNIO_BASE = process.env.ZERNIO_API_BASE || "https://zernio.com/api/v1";
 
 interface CheckResult {
   step: string;
@@ -15,12 +16,12 @@ interface CheckResult {
 async function pingZernio(
   apiKey: string,
   path: string,
-  timeoutMs = 5000,
+  timeoutMs = 5000
 ): Promise<{ ok: boolean; status: number; body: string }> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(`${getZernioApiBase()}${path}`, {
+    const res = await fetch(`${ZERNIO_BASE}${path}`, {
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
@@ -49,11 +50,14 @@ export const Route = createFileRoute("/api/debug/zernio")({
         }
         const token = authHeader.replace("Bearer ", "");
 
-        const { url, key } = getServerSupabasePublicConfig();
-        const supabase = createClient<Database>(url, key, {
-          global: { headers: { Authorization: `Bearer ${token}` } },
-          auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
-        });
+        const supabase = createClient<Database>(
+          process.env.SUPABASE_URL!,
+          process.env.SUPABASE_PUBLISHABLE_KEY!,
+          {
+            global: { headers: { Authorization: `Bearer ${token}` } },
+            auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
+          }
+        );
 
         const { data: claims } = await supabase.auth.getClaims(token);
         const userId = claims?.claims?.sub;
@@ -68,11 +72,7 @@ export const Route = createFileRoute("/api/debug/zernio")({
         const results: CheckResult[] = [];
 
         if (!settings?.zernio_api_key_encrypted) {
-          results.push({
-            step: "API Key salva",
-            status: "fail",
-            detail: "Salve sua API Key na seção abaixo.",
-          });
+          results.push({ step: "API Key salva", status: "fail", detail: "Salve sua API Key na seção abaixo." });
           return Response.json({ results });
         }
         results.push({ step: "API Key salva", status: "ok" });
@@ -80,11 +80,7 @@ export const Route = createFileRoute("/api/debug/zernio")({
         let apiKey: string;
         try {
           apiKey = decryptString(settings.zernio_api_key_encrypted);
-          results.push({
-            step: "API Key descriptografada",
-            status: "ok",
-            detail: `${apiKey.length} chars`,
-          });
+          results.push({ step: "API Key descriptografada", status: "ok", detail: `${apiKey.length} chars` });
         } catch (e) {
           results.push({
             step: "API Key descriptografada",
@@ -99,14 +95,10 @@ export const Route = createFileRoute("/api/debug/zernio")({
         if (accountsRes.ok) {
           let accountInfo = "";
           try {
-            const parsed = JSON.parse(accountsRes.body) as {
-              accounts?: { platform?: string; username?: string }[];
-            };
+            const parsed = JSON.parse(accountsRes.body) as { accounts?: { platform?: string; username?: string }[] };
             const ig = parsed.accounts?.find((a) => a.platform === "instagram");
             accountInfo = ig ? `@${ig.username}` : `${parsed.accounts?.length ?? 0} contas`;
-          } catch {
-            /* ignore */
-          }
+          } catch { /* ignore */ }
           results.push({ step: "Zernio /accounts", status: "ok", detail: accountInfo });
         } else {
           results.push({
@@ -121,7 +113,7 @@ export const Route = createFileRoute("/api/debug/zernio")({
           const inboxRes = await pingZernio(
             apiKey,
             `/inbox/conversations?accountId=${encodeURIComponent(settings.zernio_account_id)}&limit=1`,
-            5000,
+            5000
           );
           if (inboxRes.ok) {
             results.push({ step: "Addon Inbox ativo", status: "ok" });

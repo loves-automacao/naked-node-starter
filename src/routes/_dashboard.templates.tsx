@@ -60,12 +60,10 @@ const blueprints: AutomationBlueprint[] = [
   {
     id: "ebook",
     name: "Ebook Gratuito",
-    description:
-      "Envia um ebook gratuito pra quem comenta. Pede pra seguir antes de liberar o link.",
+    description: "Envia um ebook gratuito pra quem comenta. Pede pra seguir antes de liberar o link.",
     category: "infoproduct",
     icon: BookOpen,
-    custom_message:
-      "Oi! Vi que você comentou no meu post sobre o ebook. Segue meu perfil e clica no botão abaixo pra receber!",
+    custom_message: "Oi! Vi que você comentou no meu post sobre o ebook. Segue meu perfil e clica no botão abaixo pra receber!",
     followup_message: "Clica aqui pra receber o ebook 👇",
     quick_replies: [{ title: "Quero o ebook! 📘", payload: "SEND_EBOOK" }],
     buttons: [],
@@ -77,8 +75,7 @@ const blueprints: AutomationBlueprint[] = [
   {
     id: "cupom",
     name: "Cupom de Desconto",
-    description:
-      "Envia um cupom exclusivo de desconto pra quem demonstra interesse nos comentários.",
+    description: "Envia um cupom exclusivo de desconto pra quem demonstra interesse nos comentários.",
     category: "ecommerce",
     icon: ShoppingCart,
     custom_message: "Ei! Obrigado pelo interesse. Separei um cupom exclusivo pra você!",
@@ -99,8 +96,7 @@ const blueprints: AutomationBlueprint[] = [
     description: "Oferece uma consultoria gratuita pra leads qualificados que comentam nos posts.",
     category: "service",
     icon: Briefcase,
-    custom_message:
-      "Oi! Vi seu comentário e quero te oferecer uma consultoria gratuita de 15 minutos pra te ajudar!",
+    custom_message: "Oi! Vi seu comentário e quero te oferecer uma consultoria gratuita de 15 minutos pra te ajudar!",
     followup_message: "Quer agendar? 👇",
     quick_replies: [{ title: "Agendar agora! 📅", payload: "SCHEDULE_CALL" }],
     buttons: [],
@@ -115,8 +111,7 @@ const blueprints: AutomationBlueprint[] = [
     description: "Adiciona seguidores engajados numa lista VIP pra receber conteúdos exclusivos.",
     category: "engagement",
     icon: Users,
-    custom_message:
-      "Que bom que você se interessou! Vou te adicionar na nossa lista VIP pra receber conteúdos exclusivos antes de todo mundo.",
+    custom_message: "Que bom que você se interessou! Vou te adicionar na nossa lista VIP pra receber conteúdos exclusivos antes de todo mundo.",
     followup_message: "Confirma sua entrada 👇",
     quick_replies: [
       { title: "Entrar na VIP! ⭐", payload: "JOIN_VIP" },
@@ -134,8 +129,7 @@ const blueprints: AutomationBlueprint[] = [
     description: "Captura leads interessados no lançamento de um novo produto ou serviço.",
     category: "launch",
     icon: Megaphone,
-    custom_message:
-      "Você está entre os primeiros a saber! Estamos lançando algo novo e quero que você tenha acesso antecipado.",
+    custom_message: "Você está entre os primeiros a saber! Estamos lançando algo novo e quero que você tenha acesso antecipado.",
     followup_message: "Garanta sua vaga 👇",
     quick_replies: [],
     buttons: [
@@ -153,8 +147,7 @@ const blueprints: AutomationBlueprint[] = [
     description: "Convida quem comenta pra assistir uma aula gratuita sobre o tema do post.",
     category: "infoproduct",
     icon: Sparkles,
-    custom_message:
-      "Oi! Tenho uma aula gratuita sobre esse assunto que pode te ajudar muito. Quer assistir?",
+    custom_message: "Oi! Tenho uma aula gratuita sobre esse assunto que pode te ajudar muito. Quer assistir?",
     followup_message: "Clica pra assistir 👇",
     quick_replies: [{ title: "Assistir agora! 🎬", payload: "WATCH_CLASS" }],
     buttons: [],
@@ -166,12 +159,10 @@ const blueprints: AutomationBlueprint[] = [
   {
     id: "obrigado",
     name: "Engajamento Geral",
-    description:
-      "Responde a todos os comentários agradecendo e incentivando o follow. Sem filtro de keywords.",
+    description: "Responde a todos os comentários agradecendo e incentivando o follow. Sem filtro de keywords.",
     category: "engagement",
     icon: Heart,
-    custom_message:
-      "Oi! Obrigado pelo comentário no meu post! Fico feliz que tenha gostado. Me segue pra receber mais conteúdos como esse!",
+    custom_message: "Oi! Obrigado pelo comentário no meu post! Fico feliz que tenha gostado. Me segue pra receber mais conteúdos como esse!",
     followup_message: "",
     quick_replies: [],
     buttons: [],
@@ -186,8 +177,7 @@ const blueprints: AutomationBlueprint[] = [
     description: "Cadastra participantes de um sorteio ou brinde a partir dos comentários.",
     category: "ecommerce",
     icon: Gift,
-    custom_message:
-      "Você está participando! Pra confirmar sua participação no sorteio, clica no botão abaixo.",
+    custom_message: "Você está participando! Pra confirmar sua participação no sorteio, clica no botão abaixo.",
     followup_message: "Confirma sua participação 👇",
     quick_replies: [{ title: "Participar! 🎁", payload: "ENTER_GIVEAWAY" }],
     buttons: [],
@@ -221,7 +211,7 @@ function TemplatesPage() {
             delay_min_seconds: bp.delay_min_seconds,
             delay_max_seconds: bp.delay_max_seconds,
           },
-        }),
+        })
       ),
     onSuccess: (_d, bp) => {
       toast.success(`Template "${bp.name}" importado!`);
@@ -264,10 +254,7 @@ function TemplatesPage() {
                     </div>
                     <div>
                       <CardTitle className="text-sm font-semibold">{bp.name}</CardTitle>
-                      <Badge
-                        variant="outline"
-                        className={`mt-1 text-[10px] ${categoryStyles[bp.category] ?? ""}`}
-                      >
+                      <Badge variant="outline" className={`mt-1 text-[10px] ${categoryStyles[bp.category] ?? ""}`}>
                         {categoryLabels[bp.category] ?? bp.category}
                       </Badge>
                     </div>

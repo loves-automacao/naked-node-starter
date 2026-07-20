@@ -50,7 +50,7 @@ export interface BackgroundDispatchInfo {
 
 export function runInBackground(
   promise: Promise<unknown>,
-  errorTag = "[bg]",
+  errorTag = "[bg]"
 ): BackgroundDispatchInfo {
   const safe = promise.catch((e) => {
     console.error(errorTag, e instanceof Error ? e.message : e);

@@ -1,7 +1,6 @@
 // Server-only: criptografia da API Key da Zernio usando AES-256-GCM
 // Usa SUPABASE_SERVICE_ROLE_KEY como base do segredo (já existe no ambiente).
 import crypto from "crypto";
-import { getEncryptionSecretCandidates } from "@/config/env.server";
 
 // IMPORTANTE: o segredo PRECISA ser estável entre contextos (server function autenticada
 // e route handler do webhook público). Como cada contexto pode ter env vars diferentes,
@@ -13,7 +12,17 @@ import { getEncryptionSecretCandidates } from "@/config/env.server";
 // Isso garante compatibilidade entre saves antigos e novos, mesmo se as envs mudarem.
 // Pra produção, configure INSTAREPLY_ENCRYPTION_KEY (chave dedicada e estável).
 function getCandidateSecrets(): string[] {
-  return getEncryptionSecretCandidates();
+  const candidates = [
+    process.env.INSTAREPLY_ENCRYPTION_KEY,
+    process.env.SUPABASE_URL,
+    process.env.VITE_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    process.env.SUPABASE_PUBLISHABLE_KEY,
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  ].filter((s): s is string => typeof s === "string" && s.length > 0);
+
+  // Dedupe mantendo ordem
+  return [...new Set(candidates)];
 }
 
 function deriveKey(secret: string): Buffer {
@@ -24,7 +33,7 @@ function getEncryptKey(): Buffer {
   const candidates = getCandidateSecrets();
   if (candidates.length === 0) {
     throw new Error(
-      "Missing encryption secret: configure INSTAREPLY_ENCRYPTION_KEY or SUPABASE_URL",
+      "Missing encryption secret: configure INSTAREPLY_ENCRYPTION_KEY or SUPABASE_URL"
     );
   }
   return deriveKey(candidates[0]);
@@ -65,6 +74,6 @@ export function decryptString(payload: string): string {
   }
   // Nenhuma chave funcionou
   throw new Error(
-    `Authentication failed (tried ${candidates.length} secret candidates). Last error: ${errors[errors.length - 1]}`,
+    `Authentication failed (tried ${candidates.length} secret candidates). Last error: ${errors[errors.length - 1]}`
   );
 }

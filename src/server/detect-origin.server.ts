@@ -39,8 +39,7 @@ export async function detectAndPersistPublicOrigin(
       .eq("user_id", userId)
       .maybeSingle();
 
-    const stored =
-      (existing as { published_origin?: string | null } | null)?.published_origin ?? null;
+    const stored = (existing as { published_origin?: string | null } | null)?.published_origin ?? null;
     if (detected !== stored) {
       await supabase
         .from("user_settings")

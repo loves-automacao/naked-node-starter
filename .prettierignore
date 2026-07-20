@@ -1,6 +1,4 @@
 node_modules
-.lovable
-supabase/.temp
 dist
 .output
 .vinxi

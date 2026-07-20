@@ -25,7 +25,11 @@ export function parsePostInput(input: string): PostInputParsed {
   // URL completa: pega o shortcode após /p/, /reel/ ou /tv/ (aceita trailing
   // slash, query string e fragmento).
   const urlMatch = trimmed.match(/\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/);
-  const shortcode = urlMatch ? urlMatch[1] : /^[A-Za-z0-9_-]{5,30}$/.test(trimmed) ? trimmed : null;
+  const shortcode = urlMatch
+    ? urlMatch[1]
+    : /^[A-Za-z0-9_-]{5,30}$/.test(trimmed)
+    ? trimmed
+    : null;
 
   if (!shortcode) return null;
   return { kind: "shortcode", value: shortcode };

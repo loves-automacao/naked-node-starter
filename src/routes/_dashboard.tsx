@@ -1,17 +1,5 @@
 import { createFileRoute, Outlet, Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import {
-  LayoutDashboard,
-  Bot,
-  FileText,
-  ScrollText,
-  Settings,
-  HelpCircle,
-  Zap,
-  LogOut,
-  Sun,
-  Moon,
-  Loader2,
-} from "lucide-react";
+import { LayoutDashboard, Bot, FileText, ScrollText, Settings, HelpCircle, Zap, LogOut, Sun, Moon, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -77,7 +65,7 @@ function DashboardLayout() {
                     "group relative flex items-center gap-3 rounded-lg border-l-2 px-3 py-2.5 text-sm font-medium transition-all",
                     isActive
                       ? "border-primary bg-primary/10 text-primary shadow-[0_0_20px_-2px] shadow-primary/40"
-                      : "border-transparent text-muted-foreground hover:bg-primary/5 hover:text-foreground",
+                      : "border-transparent text-muted-foreground hover:bg-primary/5 hover:text-foreground"
                   )}
                 >
                   <Icon className="size-4 shrink-0" />
