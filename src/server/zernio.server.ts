@@ -10,6 +10,22 @@ interface ZernioFetchOpts {
   timeoutMs?: number;
 }
 
+const sleep = (delayMs: number) => new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+
+function isRetryableSendError(error: unknown): boolean {
+  const parsed = error as { apiStatus?: number; message?: string };
+  if (parsed.apiStatus === 409 || parsed.apiStatus === 429 || parsed.apiStatus === 503) return true;
+
+  const message = parsed.message?.toLowerCase() ?? "";
+  return (
+    message.includes("one response") ||
+    message.includes("one message") ||
+    message.includes("uma resposta") ||
+    message.includes("already processing") ||
+    message.includes("try again")
+  );
+}
+
 async function zernioFetch<T>({
   apiKey,
   path,
@@ -198,9 +214,8 @@ export async function zernioFindConversationId(input: {
 //
 // - `message`: string sempre no root
 // - `quickReplies`: array no root (até 13) — {title, payload}
-// - `template`: objeto no root pra botões web_url/postback
-//     { type: "generic", elements: [{title, subtitle?, buttons: [...]}] }
-//     buttons[].type = "url" (Zernio traduz pra web_url internamente) ou "postback"
+// - `buttons`: array no root (até 3) — mutuamente exclusivo com quickReplies
+//     buttons[].type = "url" ou "postback"
 //
 // Dentro de 24h o Meta trata como RESPONSE por default — não precisa messagingType.
 export async function zernioSendConversationMessage(input: {
@@ -219,7 +234,11 @@ export async function zernioSendConversationMessage(input: {
     message: input.message || "👇",
   };
 
-  if (input.quickReplies && input.quickReplies.length > 0) {
+  const hasButtons = !!input.buttons?.length;
+
+  // A Zernio documenta buttons e quickReplies como mutuamente exclusivos.
+  // Para automações antigas com ambos configurados, priorizamos os botões.
+  if (!hasButtons && input.quickReplies && input.quickReplies.length > 0) {
     for (let i = 0; i < input.quickReplies.length; i++) {
       const q = input.quickReplies[i];
       const idx = i + 1;
@@ -274,25 +293,7 @@ export async function zernioSendConversationMessage(input: {
       return { type: "postback", title, payload: b.payload ?? b.title };
     });
 
-    // Meta exige element.title ≤80 chars. Trunca em vez de falhar quando a
-    // mensagem legítima é longa (era a causa do "Template element title ... 80 or less").
-    const rawElementTitle = (input.templateTitle || input.message || "👇").trim() || "👇";
-    const elementTitle =
-      rawElementTitle.length > 80 ? rawElementTitle.slice(0, 77) + "..." : rawElementTitle;
-    const rawSubtitle = input.templateSubtitle?.trim();
-    const subtitle =
-      rawSubtitle && rawSubtitle.length > 80 ? rawSubtitle.slice(0, 77) + "..." : rawSubtitle;
-
-    body.template = {
-      type: "generic",
-      elements: [
-        {
-          title: elementTitle,
-          subtitle,
-          buttons: mappedButtons,
-        },
-      ],
-    };
+    body.buttons = mappedButtons;
   }
 
   if (input.useHumanAgentTag) {
@@ -306,11 +307,24 @@ export async function zernioSendConversationMessage(input: {
     JSON.stringify({ conversationId: input.conversationId, body }, null, 2),
   );
 
-  return zernioFetch({
-    apiKey: input.apiKey,
-    path: `/inbox/conversations/${input.conversationId}/messages`,
-    method: "POST",
-    body,
-    timeoutMs: 7000,
-  });
+  const path = `/inbox/conversations/${input.conversationId}/messages`;
+  const retryDelaysMs = [750, 1_500];
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await zernioFetch({
+        apiKey: input.apiKey,
+        path,
+        method: "POST",
+        body,
+        timeoutMs: 7000,
+      });
+    } catch (error) {
+      const delayMs = retryDelaysMs[attempt];
+      if (delayMs === undefined || !isRetryableSendError(error)) throw error;
+      console.warn(
+        `[zernio] envio temporariamente recusado; tentativa ${attempt + 2} em ${delayMs}ms`,
+      );
+      await sleep(delayMs);
+    }
+  }
 }

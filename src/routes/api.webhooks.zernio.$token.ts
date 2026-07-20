@@ -18,6 +18,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, X-Signature",
 };
 
+const sleep = (delayMs: number) => new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+
 interface ZernioCommentEvent {
   id?: string;
   event?: string;
@@ -649,6 +651,7 @@ async function handleCommentEvent({
       if (!conversationId) {
         // 2ª tentativa
         await findConv.skip("Conversa ainda não indexada — tentando novamente");
+        await sleep(1_000);
         const retry = await logger.step(
           "find_conversation_retry",
           "Retentando localizar a conversa",
@@ -681,6 +684,9 @@ async function handleCommentEvent({
     }
 
     if (conversationId && !stoppedAt) {
+      // O private reply abre a conversa de forma assíncrona no Instagram.
+      // Esta janela evita que o follow-up concorra com a primeira resposta.
+      await sleep(750);
       const s = await logger.step("followup", "Enviando follow-up (2ª mensagem)", {
         conversation_id: conversationId,
         quick_replies: quickReplies.length,
