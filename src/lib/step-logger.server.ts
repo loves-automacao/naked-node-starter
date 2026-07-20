@@ -33,8 +33,15 @@ export function parseZernioError(e: unknown): { message: string; status?: number
 }
 
 interface StepHandle {
-  success: (opts?: { apiResponse?: unknown; apiStatus?: number; extraContext?: Record<string, unknown> }) => Promise<void>;
-  fail: (err: unknown, opts?: { extraContext?: Record<string, unknown> }) => Promise<{ message: string; status?: number; body?: unknown }>;
+  success: (opts?: {
+    apiResponse?: unknown;
+    apiStatus?: number;
+    extraContext?: Record<string, unknown>;
+  }) => Promise<void>;
+  fail: (
+    err: unknown,
+    opts?: { extraContext?: Record<string, unknown> },
+  ) => Promise<{ message: string; status?: number; body?: unknown }>;
   skip: (reason: string, extraContext?: Record<string, unknown>) => Promise<void>;
 }
 
@@ -50,7 +57,10 @@ export interface StepLogger {
 type StepsTable = {
   insert: (row: Record<string, unknown>) => {
     select: (c: string) => {
-      maybeSingle: () => Promise<{ data: { id: string } | null; error: { message: string } | null }>;
+      maybeSingle: () => Promise<{
+        data: { id: string } | null;
+        error: { message: string } | null;
+      }>;
     };
   };
   update: (row: Record<string, unknown>) => {
@@ -107,7 +117,7 @@ export function createStepLogger(logId: string | null, userId: string): StepLogg
       api_status_code?: number | null;
       api_response?: unknown;
       context?: Record<string, unknown> | null;
-    }
+    },
   ): Promise<void> {
     const { error } = await stepsTable()
       .update({
@@ -125,7 +135,13 @@ export function createStepLogger(logId: string | null, userId: string): StepLogg
   return {
     startedAt,
     async info(name, label, context) {
-      await insertStep({ step: name, label, status: "success", duration_ms: 0, context: context ?? null });
+      await insertStep({
+        step: name,
+        label,
+        status: "success",
+        duration_ms: 0,
+        context: context ?? null,
+      });
     },
     async step(name, label, context) {
       const stepStartedAt = Date.now();
@@ -143,12 +159,12 @@ export function createStepLogger(logId: string | null, userId: string): StepLogg
           api_status_code?: number | null;
           api_response?: unknown;
           extraContext?: Record<string, unknown>;
-        } = {}
+        } = {},
       ) => {
         const duration_ms = Date.now() - stepStartedAt;
         const mergedContext = extra.extraContext
           ? { ...(context ?? {}), ...extra.extraContext }
-          : context ?? null;
+          : (context ?? null);
         if (stepId) {
           await updateStep(stepId, {
             status,

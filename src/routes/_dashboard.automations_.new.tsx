@@ -12,7 +12,6 @@ import { resolveInstagramMediaId } from "@/lib/instagram-post.functions";
 import { withAuthFetch } from "@/lib/server-fetch";
 import { AutomationForm, type AutomationFormValues } from "@/components/automation-form";
 
-
 export const Route = createFileRoute("/_dashboard/automations_/new")({
   component: NewAutomationPage,
 });
@@ -61,7 +60,6 @@ function NewAutomationPage() {
     resolveM.mutate(postInput);
   }
 
-
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <div>
@@ -99,7 +97,6 @@ function NewAutomationPage() {
                 {resolveM.isPending ? <Loader2 className="size-4 animate-spin" /> : "Continuar"}
               </Button>
             </div>
-
           </CardContent>
         </Card>
       )}

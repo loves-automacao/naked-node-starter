@@ -16,7 +16,7 @@ interface CheckResult {
 async function pingZernio(
   apiKey: string,
   path: string,
-  timeoutMs = 5000
+  timeoutMs = 5000,
 ): Promise<{ ok: boolean; status: number; body: string }> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -56,7 +56,7 @@ export const Route = createFileRoute("/api/debug/zernio")({
           {
             global: { headers: { Authorization: `Bearer ${token}` } },
             auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
-          }
+          },
         );
 
         const { data: claims } = await supabase.auth.getClaims(token);
@@ -72,7 +72,11 @@ export const Route = createFileRoute("/api/debug/zernio")({
         const results: CheckResult[] = [];
 
         if (!settings?.zernio_api_key_encrypted) {
-          results.push({ step: "API Key salva", status: "fail", detail: "Salve sua API Key na seção abaixo." });
+          results.push({
+            step: "API Key salva",
+            status: "fail",
+            detail: "Salve sua API Key na seção abaixo.",
+          });
           return Response.json({ results });
         }
         results.push({ step: "API Key salva", status: "ok" });
@@ -80,7 +84,11 @@ export const Route = createFileRoute("/api/debug/zernio")({
         let apiKey: string;
         try {
           apiKey = decryptString(settings.zernio_api_key_encrypted);
-          results.push({ step: "API Key descriptografada", status: "ok", detail: `${apiKey.length} chars` });
+          results.push({
+            step: "API Key descriptografada",
+            status: "ok",
+            detail: `${apiKey.length} chars`,
+          });
         } catch (e) {
           results.push({
             step: "API Key descriptografada",
@@ -95,10 +103,14 @@ export const Route = createFileRoute("/api/debug/zernio")({
         if (accountsRes.ok) {
           let accountInfo = "";
           try {
-            const parsed = JSON.parse(accountsRes.body) as { accounts?: { platform?: string; username?: string }[] };
+            const parsed = JSON.parse(accountsRes.body) as {
+              accounts?: { platform?: string; username?: string }[];
+            };
             const ig = parsed.accounts?.find((a) => a.platform === "instagram");
             accountInfo = ig ? `@${ig.username}` : `${parsed.accounts?.length ?? 0} contas`;
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
           results.push({ step: "Zernio /accounts", status: "ok", detail: accountInfo });
         } else {
           results.push({
@@ -113,7 +125,7 @@ export const Route = createFileRoute("/api/debug/zernio")({
           const inboxRes = await pingZernio(
             apiKey,
             `/inbox/conversations?accountId=${encodeURIComponent(settings.zernio_account_id)}&limit=1`,
-            5000
+            5000,
           );
           if (inboxRes.ok) {
             results.push({ step: "Addon Inbox ativo", status: "ok" });

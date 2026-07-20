@@ -9,6 +9,7 @@ import {
   zernioSendConversationMessage,
 } from "@/server/zernio.server";
 import { createStepLogger, parseZernioError, type StepLogger } from "@/lib/step-logger.server";
+import { matchedKeyword } from "@/lib/webhook-rules";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,15 +50,6 @@ interface ZernioMessageEvent {
   timestamp?: string;
 }
 
-function matchedKeyword(text: string, keywords: string[]): string | null {
-  if (!keywords || keywords.length === 0) return null;
-  const t = text.toLowerCase();
-  for (const k of keywords) {
-    if (k && t.includes(k.toLowerCase())) return k;
-  }
-  return null;
-}
-
 function friendlyZernioError(raw: string): string {
   if (raw.includes("INBOX_REQUIRED")) {
     return "Sua conta Zernio não tem o addon Inbox ativo. Ative-o em zernio.com (Configurações → Addons).";
@@ -84,8 +76,12 @@ export const Route = createFileRoute("/api/webhooks/zernio/$token")({
         } catch (e) {
           console.error("[webhook] uncaught error:", e);
           return new Response(
-            JSON.stringify({ ok: true, error: "internal", message: e instanceof Error ? e.message : String(e) }),
-            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+            JSON.stringify({
+              ok: true,
+              error: "internal",
+              message: e instanceof Error ? e.message : String(e),
+            }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
           );
         }
       },
@@ -129,7 +125,7 @@ async function finish(
     stoppedAtStep?: string | null;
     error?: string | null;
     responseBody: Record<string, unknown>;
-  }
+  },
 ): Promise<Response> {
   const totalDurationMs = Date.now() - logger.startedAt;
   await Promise.all([
@@ -142,7 +138,7 @@ async function finish(
         : opts.status === "failed"
           ? `Automação encerrada em: ${opts.stoppedAtStep ?? "erro"}`
           : `Automação ignorada (${opts.stoppedAtStep ?? "sem ação"})`,
-      { total_duration_ms: totalDurationMs, final_status: opts.status }
+      { total_duration_ms: totalDurationMs, final_status: opts.status },
     ),
   ]);
   return jsonResponse({ ok: true, ...opts.responseBody, duration_ms: totalDurationMs });
@@ -194,9 +190,7 @@ async function handleWebhookPost({
       status: "received",
       comment_text: rawPayload.comment?.text ?? rawPayload.message?.text ?? null,
       instagram_user:
-        rawPayload.comment?.author?.username ??
-        rawPayload.message?.sender?.username ??
-        null,
+        rawPayload.comment?.author?.username ?? rawPayload.message?.sender?.username ?? null,
       instagram_post_id:
         rawPayload.comment?.platformPostId ?? rawPayload.post?.platformPostId ?? null,
       event_type: eventType,
@@ -308,12 +302,14 @@ async function handleMessageEvent({
   // Nota: `isFollower` fica disponível no payload mas não bloqueia mais o fluxo.
   // Regras de "somente seguidores" devem ser opt-in por automação, não globais.
 
-
-
   if (payloadFromClick) {
-    const findAuto = await logger.step("find_automation", "Buscando automação para entregar conteúdo", {
-      quick_reply_payload: payloadFromClick,
-    });
+    const findAuto = await logger.step(
+      "find_automation",
+      "Buscando automação para entregar conteúdo",
+      {
+        quick_reply_payload: payloadFromClick,
+      },
+    );
     const { data: autos } = await supabaseAdmin
       .from("automations")
       .select("*")
@@ -386,7 +382,9 @@ async function handleMessageEvent({
       responseBody: { ignored: "no_dm_trigger_match" },
     });
   }
-  await findDm.success({ extraContext: { automation_id: matchingDm.id, matched_keyword: matchedKw } });
+  await findDm.success({
+    extraContext: { automation_id: matchingDm.id, matched_keyword: matchedKw },
+  });
   if (matchedKw) await updateLog(logId, { trigger_keyword: matchedKw });
 
   const dmMessage = matchingDm.followup_message || matchingDm.custom_message;
@@ -474,7 +472,7 @@ async function handleCommentEvent({
     supabaseAdmin
       .from("user_settings")
       .select(
-        "zernio_api_key_encrypted,zernio_account_id,outgoing_webhook_url,outgoing_webhook_enabled"
+        "zernio_api_key_encrypted,zernio_account_id,outgoing_webhook_url,outgoing_webhook_enabled",
       )
       .eq("user_id", userId)
       .maybeSingle(),
@@ -526,11 +524,9 @@ async function handleCommentEvent({
     },
   });
   if (matchedKw) {
-    await logger.info(
-      "keyword_matched",
-      `Palavra-chave "${matchedKw}" encontrada`,
-      { keyword: matchedKw }
-    );
+    await logger.info("keyword_matched", `Palavra-chave "${matchedKw}" encontrada`, {
+      keyword: matchedKw,
+    });
     await updateLog(logId, { trigger_keyword: matchedKw });
   }
   await updateLog(logId, { automation_id: matching.id });
@@ -571,8 +567,7 @@ async function handleCommentEvent({
     payload?: string;
     url?: string;
   }>(matching.buttons);
-  const hasFollowup =
-    !!matching.followup_message || quickReplies.length > 0 || buttons.length > 0;
+  const hasFollowup = !!matching.followup_message || quickReplies.length > 0 || buttons.length > 0;
 
   // ── 1ª mensagem: private reply ──
   let primarySent = false;
@@ -621,7 +616,10 @@ async function handleCommentEvent({
       if (!conversationId) {
         // 2ª tentativa
         await findConv.skip("Conversa ainda não indexada — tentando novamente");
-        const retry = await logger.step("find_conversation_retry", "Retentando localizar a conversa");
+        const retry = await logger.step(
+          "find_conversation_retry",
+          "Retentando localizar a conversa",
+        );
         try {
           conversationId = await zernioFindConversationId({
             apiKey,
@@ -684,7 +682,7 @@ async function handleCommentEvent({
     .update(
       primarySent
         ? { total_sent: (matching.total_sent ?? 0) + 1 }
-        : { total_failed: (matching.total_failed ?? 0) + 1 }
+        : { total_failed: (matching.total_failed ?? 0) + 1 },
     )
     .eq("id", matching.id);
 
@@ -708,7 +706,10 @@ async function handleCommentEvent({
       });
       if (!r.ok) {
         const body = await r.text().catch(() => "");
-        const err = new Error(`HTTP ${r.status}: ${body}`) as Error & { apiStatus: number; apiBody: unknown };
+        const err = new Error(`HTTP ${r.status}: ${body}`) as Error & {
+          apiStatus: number;
+          apiBody: unknown;
+        };
         err.apiStatus = r.status;
         err.apiBody = body;
         await out.fail(err);
@@ -720,7 +721,8 @@ async function handleCommentEvent({
     }
   }
 
-  const status: "sent" | "failed" = primarySent && (!hasFollowup || followupSent) ? "sent" : "failed";
+  const status: "sent" | "failed" =
+    primarySent && (!hasFollowup || followupSent) ? "sent" : "failed";
   return finish(logger, logId, {
     status,
     stoppedAtStep: stoppedAt,

@@ -10,7 +10,13 @@ interface ZernioFetchOpts {
   timeoutMs?: number;
 }
 
-async function zernioFetch<T>({ apiKey, path, method = "GET", body, timeoutMs = 5000 }: ZernioFetchOpts): Promise<T> {
+async function zernioFetch<T>({
+  apiKey,
+  path,
+  method = "GET",
+  body,
+  timeoutMs = 5000,
+}: ZernioFetchOpts): Promise<T> {
   // Timeout configurável. Como o webhook processa em background via ctx.waitUntil,
   // podemos tolerar chamadas longas sem bloquear a resposta ao provedor.
   // - findConversation / /accounts: 5s (default, GET rápido)
@@ -55,7 +61,6 @@ async function zernioFetch<T>({ apiKey, path, method = "GET", body, timeoutMs = 
   return text ? (JSON.parse(text) as T) : ({} as T);
 }
 
-
 interface ZernioAccount {
   _id: string;
   platform: string;
@@ -64,7 +69,7 @@ interface ZernioAccount {
 }
 
 export async function zernioGetInstagramAccount(
-  apiKey: string
+  apiKey: string,
 ): Promise<{ accountId: string | null; username: string | null }> {
   try {
     const data = await zernioFetch<{ accounts?: ZernioAccount[] }>({
@@ -122,7 +127,7 @@ export async function zernioResolvePostByShortcode(input: {
       timeoutMs: 8000,
     });
     const hit = (data.data ?? []).find(
-      (p) => p.accountId === input.accountId && (p.permalink ?? "").includes(target)
+      (p) => p.accountId === input.accountId && (p.permalink ?? "").includes(target),
     );
     if (hit) return { mediaId: hit.id, permalink: hit.permalink ?? null };
     if (!data.pagination?.hasMore || !data.pagination.nextCursor) break;
@@ -166,7 +171,10 @@ export async function zernioFindConversationId(input: {
   try {
     // Zernio retorna { data: [...] }, não { conversations: [...] }.
     // Cada conversation tem id (flat) e participantId (flat) no top-level.
-    const data = await zernioFetch<{ data?: ZernioConversation[]; conversations?: ZernioConversation[] }>({
+    const data = await zernioFetch<{
+      data?: ZernioConversation[];
+      conversations?: ZernioConversation[];
+    }>({
       apiKey: input.apiKey,
       path: `/inbox/conversations?accountId=${encodeURIComponent(input.accountId)}`,
     });
@@ -174,7 +182,7 @@ export async function zernioFindConversationId(input: {
     const conv = list.find((c) => {
       if (c.participantId === input.participantId) return true;
       return (c.participants ?? []).some(
-        (p) => p.id === input.participantId || p.platformUserId === input.participantId
+        (p) => p.id === input.participantId || p.platformUserId === input.participantId,
       );
     });
     return conv?.id || conv?._id || null;
@@ -216,11 +224,16 @@ export async function zernioSendConversationMessage(input: {
       const q = input.quickReplies[i];
       const idx = i + 1;
       let reason: string | null = null;
-      if (!q || typeof q.title !== "string") reason = `Quick reply #${idx}: campo obrigatório ausente: title`;
+      if (!q || typeof q.title !== "string")
+        reason = `Quick reply #${idx}: campo obrigatório ausente: title`;
       else if (q.title.trim().length === 0) reason = `Quick reply #${idx}: "title" vazio`;
-      else if (q.title.length > 20) reason = `Quick reply #${idx}: "title" possui ${q.title.length} caracteres. Máx 20.`;
+      else if (q.title.length > 20)
+        reason = `Quick reply #${idx}: "title" possui ${q.title.length} caracteres. Máx 20.`;
       if (reason) {
-        const err = new Error(`Quick reply inválido — ${reason}`) as Error & { apiStatus: number; apiBody: unknown };
+        const err = new Error(`Quick reply inválido — ${reason}`) as Error & {
+          apiStatus: number;
+          apiBody: unknown;
+        };
         err.apiStatus = 0;
         err.apiBody = { validation: reason, quickReply: q };
         throw err;
@@ -235,13 +248,18 @@ export async function zernioSendConversationMessage(input: {
       const b = input.buttons[i];
       const idx = i + 1;
       let reason: string | null = null;
-      if (!b || typeof b.title !== "string") reason = `Botão #${idx}: campo obrigatório ausente: title`;
+      if (!b || typeof b.title !== "string")
+        reason = `Botão #${idx}: campo obrigatório ausente: title`;
       else if (b.title.trim().length === 0) reason = `Botão #${idx}: o campo "title" está vazio`;
-      else if (b.title.length > 80) reason = `Botão #${idx}: o campo "title" possui ${b.title.length} caracteres. O máximo permitido é 80.`;
+      else if (b.title.length > 80)
+        reason = `Botão #${idx}: o campo "title" possui ${b.title.length} caracteres. O máximo permitido é 80.`;
       else if ((b.type === "web_url" || b.type === "url") && (!b.url || b.url.trim().length === 0))
         reason = `Botão #${idx}: URL ausente para botão de link`;
       if (reason) {
-        const err = new Error(`Botão inválido — ${reason}`) as Error & { apiStatus: number; apiBody: unknown };
+        const err = new Error(`Botão inválido — ${reason}`) as Error & {
+          apiStatus: number;
+          apiBody: unknown;
+        };
         err.apiStatus = 0;
         err.apiBody = { validation: reason, button: b };
         throw err;
@@ -259,9 +277,11 @@ export async function zernioSendConversationMessage(input: {
     // Meta exige element.title ≤80 chars. Trunca em vez de falhar quando a
     // mensagem legítima é longa (era a causa do "Template element title ... 80 or less").
     const rawElementTitle = (input.templateTitle || input.message || "👇").trim() || "👇";
-    const elementTitle = rawElementTitle.length > 80 ? rawElementTitle.slice(0, 77) + "..." : rawElementTitle;
+    const elementTitle =
+      rawElementTitle.length > 80 ? rawElementTitle.slice(0, 77) + "..." : rawElementTitle;
     const rawSubtitle = input.templateSubtitle?.trim();
-    const subtitle = rawSubtitle && rawSubtitle.length > 80 ? rawSubtitle.slice(0, 77) + "..." : rawSubtitle;
+    const subtitle =
+      rawSubtitle && rawSubtitle.length > 80 ? rawSubtitle.slice(0, 77) + "..." : rawSubtitle;
 
     body.template = {
       type: "generic",
@@ -283,7 +303,7 @@ export async function zernioSendConversationMessage(input: {
   // Payload completo logado antes do envio pra facilitar diagnóstico.
   console.log(
     "[zernio] sendConversationMessage payload:",
-    JSON.stringify({ conversationId: input.conversationId, body }, null, 2)
+    JSON.stringify({ conversationId: input.conversationId, body }, null, 2),
   );
 
   return zernioFetch({

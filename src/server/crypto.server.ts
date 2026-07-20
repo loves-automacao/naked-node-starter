@@ -33,7 +33,7 @@ function getEncryptKey(): Buffer {
   const candidates = getCandidateSecrets();
   if (candidates.length === 0) {
     throw new Error(
-      "Missing encryption secret: configure INSTAREPLY_ENCRYPTION_KEY or SUPABASE_URL"
+      "Missing encryption secret: configure INSTAREPLY_ENCRYPTION_KEY or SUPABASE_URL",
     );
   }
   return deriveKey(candidates[0]);
@@ -74,6 +74,6 @@ export function decryptString(payload: string): string {
   }
   // Nenhuma chave funcionou
   throw new Error(
-    `Authentication failed (tried ${candidates.length} secret candidates). Last error: ${errors[errors.length - 1]}`
+    `Authentication failed (tried ${candidates.length} secret candidates). Last error: ${errors[errors.length - 1]}`,
   );
 }

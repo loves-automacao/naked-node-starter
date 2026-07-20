@@ -1,6 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Bot, MoreVertical, Pencil, Copy, Trash2, MessageCircle, Filter, TrendingUp, Loader2 } from "lucide-react";
+import {
+  Plus,
+  Bot,
+  MoreVertical,
+  Pencil,
+  Copy,
+  Trash2,
+  MessageCircle,
+  Filter,
+  TrendingUp,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -56,7 +67,7 @@ function AutomationsPage() {
   const automations = data?.automations ?? [];
   const activeCount = automations.filter((a) => a.is_active).length;
 
-  function ctr(a: typeof automations[number]) {
+  function ctr(a: (typeof automations)[number]) {
     const total = (a.total_sent ?? 0) + (a.total_failed ?? 0);
     if (total === 0) return "N/A";
     return `${(((a.total_sent ?? 0) / total) * 100).toFixed(1)}%`;
@@ -198,7 +209,11 @@ function AutomationsPage() {
                   <div className="hidden sm:flex justify-end">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="size-8 opacity-0 group-hover:opacity-100">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 opacity-0 group-hover:opacity-100"
+                        >
                           <MoreVertical className="size-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -213,7 +228,11 @@ function AutomationsPage() {
                           <Copy className="size-3.5 mr-2" />
                           Duplicar
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toggleM.mutate({ id: auto.id, is_active: !auto.is_active })}>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            toggleM.mutate({ id: auto.id, is_active: !auto.is_active })
+                          }
+                        >
                           <TrendingUp className="size-3.5 mr-2" />
                           {auto.is_active ? "Pausar" : "Ativar"}
                         </DropdownMenuItem>
