@@ -16,7 +16,8 @@ export const getSettings = createServerFn({ method: "GET" })
       supabase.from("profiles").select("webhook_token,email,name").eq("id", userId).maybeSingle(),
     ]);
 
-    const stored = (settings as { published_origin?: string | null } | null)?.published_origin ?? null;
+    const stored =
+      (settings as { published_origin?: string | null } | null)?.published_origin ?? null;
     const publicAppOrigin = detected ?? stored;
 
     return {
@@ -111,7 +112,8 @@ export const saveOutgoingWebhook = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { url: string; enabled: boolean }) => {
     if (input.url && input.url.length > 2000) throw new Error("URL muito longa");
-    if (input.url && !/^https?:\/\//.test(input.url)) throw new Error("URL deve começar com http(s)://");
+    if (input.url && !/^https?:\/\//.test(input.url))
+      throw new Error("URL deve começar com http(s)://");
     return input;
   })
   .handler(async ({ data, context }) => {

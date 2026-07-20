@@ -28,7 +28,9 @@ function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      toast.error(error.message === "Invalid login credentials" ? "Email ou senha incorretos" : error.message);
+      toast.error(
+        error.message === "Invalid login credentials" ? "Email ou senha incorretos" : error.message,
+      );
       return;
     }
     navigate({ to: "/dashboard" });
@@ -93,14 +95,32 @@ function LoginPage() {
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Login</h1>
             <form onSubmit={handleLogin} className="mt-6 flex flex-col gap-4">
               <div className="relative">
-                <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputClass} />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className={inputClass}
+                />
                 <Mail className="absolute right-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               </div>
               <div className="relative">
-                <input type="password" placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} required className={inputClass} />
+                <input
+                  type="password"
+                  placeholder="Senha"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className={inputClass}
+                />
                 <Lock className="absolute right-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               </div>
-              <button type="submit" disabled={loading} className="w-full rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-all">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-all"
+              >
                 {loading && !isActive ? "Entrando..." : "Entrar"}
               </button>
             </form>
@@ -112,18 +132,43 @@ function LoginPage() {
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Criar Conta</h1>
             <form onSubmit={handleSignUp} className="mt-6 flex flex-col gap-4">
               <div className="relative">
-                <input type="text" placeholder="Nome" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+                <input
+                  type="text"
+                  placeholder="Nome"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className={inputClass}
+                />
                 <User className="absolute right-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               </div>
               <div className="relative">
-                <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputClass} />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className={inputClass}
+                />
                 <Mail className="absolute right-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               </div>
               <div className="relative">
-                <input type="password" placeholder="Senha (min 6)" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className={inputClass} />
+                <input
+                  type="password"
+                  placeholder="Senha (min 6)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className={inputClass}
+                />
                 <Lock className="absolute right-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               </div>
-              <button type="submit" disabled={loading} className="w-full rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-all">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-all"
+              >
                 {loading && isActive ? "Criando..." : "Criar Conta"}
               </button>
             </form>
@@ -137,7 +182,10 @@ function LoginPage() {
               <span className="text-2xl font-bold">InstaReply</span>
             </div>
             <p className="text-sm opacity-90 mb-5">Ainda não tem conta?</p>
-            <button onClick={() => setIsActive(true)} className="rounded-lg border-2 border-primary-foreground bg-transparent px-8 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-foreground/10 transition-all">
+            <button
+              onClick={() => setIsActive(true)}
+              className="rounded-lg border-2 border-primary-foreground bg-transparent px-8 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-foreground/10 transition-all"
+            >
               Criar Conta
             </button>
           </div>
@@ -147,7 +195,10 @@ function LoginPage() {
               <span className="text-2xl font-bold">InstaReply</span>
             </div>
             <p className="text-sm opacity-90 mb-5">Já tem uma conta?</p>
-            <button onClick={() => setIsActive(false)} className="rounded-lg border-2 border-primary-foreground bg-transparent px-8 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-foreground/10 transition-all">
+            <button
+              onClick={() => setIsActive(false)}
+              className="rounded-lg border-2 border-primary-foreground bg-transparent px-8 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-foreground/10 transition-all"
+            >
               Entrar
             </button>
           </div>

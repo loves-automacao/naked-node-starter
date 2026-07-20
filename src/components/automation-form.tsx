@@ -14,7 +14,6 @@ import { resolveInstagramMediaId } from "@/lib/instagram-post.functions";
 import { withAuthFetch } from "@/lib/server-fetch";
 import { parsePostInput } from "@/lib/instagram-post";
 
-
 export interface AutomationFormValues {
   name: string;
   instagram_post_id: string;
@@ -49,7 +48,12 @@ function slugify(text: string, fallback = "BTN"): string {
   return slug || `${fallback}_${Date.now().toString(36).toUpperCase()}`;
 }
 
-export function AutomationForm({ initialValues, submitLabel, submitting, onSubmit }: AutomationFormProps) {
+export function AutomationForm({
+  initialValues,
+  submitLabel,
+  submitting,
+  onSubmit,
+}: AutomationFormProps) {
   const navigate = useNavigate();
   const [form, setForm] = useState<AutomationFormValues>(initialValues);
 
@@ -67,7 +71,10 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
     update("quick_replies", u);
   }
   function removeQuickReply(i: number) {
-    update("quick_replies", form.quick_replies.filter((_, idx) => idx !== i));
+    update(
+      "quick_replies",
+      form.quick_replies.filter((_, idx) => idx !== i),
+    );
   }
 
   function addButton() {
@@ -84,12 +91,20 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
     if (type === "web_url") {
       u[i] = { type: "web_url", title: u[i].title, url: u[i].url ?? "", payload: undefined };
     } else {
-      u[i] = { type: "postback", title: u[i].title, payload: slugify(u[i].title || "", "BTN"), url: undefined };
+      u[i] = {
+        type: "postback",
+        title: u[i].title,
+        payload: slugify(u[i].title || "", "BTN"),
+        url: undefined,
+      };
     }
     update("buttons", u);
   }
   function removeButton(i: number) {
-    update("buttons", form.buttons.filter((_, idx) => idx !== i));
+    update(
+      "buttons",
+      form.buttons.filter((_, idx) => idx !== i),
+    );
   }
 
   const resolveM = useMutation({
@@ -102,7 +117,7 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
     const parsed = parsePostInput(form.instagram_post_id);
     if (!parsed) {
       toast.error(
-        "Post inválido. Use '*' para todos, ou cole URL/ID do post (ex: instagram.com/p/Cxxxx)."
+        "Post inválido. Use '*' para todos, ou cole URL/ID do post (ex: instagram.com/p/Cxxxx).",
       );
       return;
     }
@@ -112,15 +127,17 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
     }
     if (form.buttons.length > 0 && form.followup_message.length > 80) {
       toast.error(
-        "Com botões nativos, a mensagem de follow-up precisa ter até 80 caracteres (limite do Instagram)."
+        "Com botões nativos, a mensagem de follow-up precisa ter até 80 caracteres (limite do Instagram).",
       );
       return;
     }
     const urlButtonInvalid = form.buttons.find(
-      (b) => b.title.trim() && b.type === "web_url" && !/^https?:\/\/.+/.test(b.url ?? "")
+      (b) => b.title.trim() && b.type === "web_url" && !/^https?:\/\/.+/.test(b.url ?? ""),
     );
     if (urlButtonInvalid) {
-      toast.error(`Botão "${urlButtonInvalid.title}": URL inválida (deve começar com http:// ou https://)`);
+      toast.error(
+        `Botão "${urlButtonInvalid.title}": URL inválida (deve começar com http:// ou https://)`,
+      );
       return;
     }
 
@@ -150,17 +167,19 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
         .map((b) =>
           b.type === "web_url"
             ? { type: "web_url", title: b.title, url: b.url?.trim() ?? "" }
-            : { type: "postback", title: b.title, payload: b.payload ?? slugify(b.title, "BTN") }
+            : { type: "postback", title: b.title, payload: b.payload ?? slugify(b.title, "BTN") },
         ),
       is_active: form.is_active,
       keyword_filter_enabled: form.keyword_filter_enabled,
-      keywords: form.keywords.split(",").map((k) => k.trim()).filter(Boolean),
+      keywords: form.keywords
+        .split(",")
+        .map((k) => k.trim())
+        .filter(Boolean),
       delay_min_seconds: form.delay_min_seconds,
       delay_max_seconds: form.delay_max_seconds,
       trigger_on_dm: form.trigger_on_dm,
     });
   }
-
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -171,7 +190,8 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
               {form.instagram_post_id === "*" ? "Todos os posts" : form.instagram_post_type}
             </Badge>
             <span className="text-xs text-muted-foreground">
-              Cole a URL do post, o shortcode, o ID numérico, ou <code className="rounded bg-muted px-1">*</code> para todos.
+              Cole a URL do post, o shortcode, o ID numérico, ou{" "}
+              <code className="rounded bg-muted px-1">*</code> para todos.
             </span>
           </div>
           <Input
@@ -184,22 +204,23 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
             if (!form.instagram_post_id.trim()) return null;
             if (!parsed) {
               return (
-                <p className="text-xs text-destructive">Formato inválido — cole URL, shortcode, ID numérico ou *.</p>
+                <p className="text-xs text-destructive">
+                  Formato inválido — cole URL, shortcode, ID numérico ou *.
+                </p>
               );
             }
             if (parsed.kind === "shortcode") {
               return (
                 <p className="text-xs text-muted-foreground">
-                  Shortcode <code className="rounded bg-muted px-1">{parsed.value}</code> — será resolvido pelo media_id ao salvar (via Zernio).
+                  Shortcode <code className="rounded bg-muted px-1">{parsed.value}</code> — será
+                  resolvido pelo media_id ao salvar (via Zernio).
                 </p>
               );
             }
             return null;
           })()}
-
         </CardContent>
       </Card>
-
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="auto-name">Nome da automação</Label>
@@ -215,9 +236,15 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-0.5">
           <Label htmlFor="is-active">Automação ativa</Label>
-          <p className="text-xs text-muted-foreground">Quando ativa, responde automaticamente aos comentários.</p>
+          <p className="text-xs text-muted-foreground">
+            Quando ativa, responde automaticamente aos comentários.
+          </p>
         </div>
-        <Switch id="is-active" checked={form.is_active} onCheckedChange={(v) => update("is_active", v)} />
+        <Switch
+          id="is-active"
+          checked={form.is_active}
+          onCheckedChange={(v) => update("is_active", v)}
+        />
       </div>
 
       <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
@@ -251,9 +278,7 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
             placeholder="Clica no botão abaixo pra receber 👇"
             value={form.followup_message}
             onChange={(e) => {
-              const val = form.buttons.length > 0
-                ? e.target.value.slice(0, 80)
-                : e.target.value;
+              const val = form.buttons.length > 0 ? e.target.value.slice(0, 80) : e.target.value;
               update("followup_message", val);
             }}
             maxLength={form.buttons.length > 0 ? 80 : undefined}
@@ -262,16 +287,19 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
           />
           {form.buttons.length > 0 && (
             <div className="flex items-center justify-between">
-              <p className={`text-xs ${form.followup_message.length > 80 ? "text-destructive" : "text-muted-foreground"}`}>
+              <p
+                className={`text-xs ${form.followup_message.length > 80 ? "text-destructive" : "text-muted-foreground"}`}
+              >
                 Com botões nativos, o Instagram limita esta mensagem a 80 caracteres.
               </p>
-              <span className={`text-xs tabular-nums ${form.followup_message.length > 80 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+              <span
+                className={`text-xs tabular-nums ${form.followup_message.length > 80 ? "text-destructive font-medium" : "text-muted-foreground"}`}
+              >
                 {form.followup_message.length}/80
               </span>
             </div>
           )}
         </div>
-
 
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
@@ -299,14 +327,25 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
                 <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">
                   {qr.title.length}/20
                 </span>
-                <Button type="button" variant="ghost" size="icon" onClick={() => removeQuickReply(i)}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeQuickReply(i)}
+                >
                   <X className="size-4" />
                 </Button>
               </div>
             </div>
           ))}
           {form.quick_replies.length < 13 && (
-            <Button type="button" variant="outline" size="sm" onClick={addQuickReply} className="w-fit">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addQuickReply}
+              className="w-fit"
+            >
               <Plus className="size-4 mr-1" /> Adicionar quick reply
             </Button>
           )}
@@ -317,7 +356,8 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
             <div>
               <Label>Botões nativos (fixos)</Label>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Botões fixos na mensagem que não desaparecem. Podem responder no DM ou abrir um link. Máx 3.
+                Botões fixos na mensagem que não desaparecem. Podem responder no DM ou abrir um
+                link. Máx 3.
               </p>
             </div>
             <span className="text-xs text-muted-foreground">{form.buttons.length}/3</span>
@@ -380,12 +420,17 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
       <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <div className="flex items-center justify-between">
           <Label>Filtro por palavras-chave</Label>
-          <Switch checked={form.keyword_filter_enabled}
-            onCheckedChange={(v) => update("keyword_filter_enabled", v)} />
+          <Switch
+            checked={form.keyword_filter_enabled}
+            onCheckedChange={(v) => update("keyword_filter_enabled", v)}
+          />
         </div>
         {form.keyword_filter_enabled && (
-          <Input placeholder="quero, ebook, link (separadas por vírgula)"
-            value={form.keywords} onChange={(e) => update("keywords", e.target.value)} />
+          <Input
+            placeholder="quero, ebook, link (separadas por vírgula)"
+            value={form.keywords}
+            onChange={(e) => update("keywords", e.target.value)}
+          />
         )}
       </div>
 
@@ -397,31 +442,48 @@ export function AutomationForm({ initialValues, submitLabel, submitting, onSubmi
             (respeitando o filtro de palavras-chave, se configurado).
           </p>
         </div>
-        <Switch
-          checked={form.trigger_on_dm}
-          onCheckedChange={(v) => update("trigger_on_dm", v)}
-        />
+        <Switch checked={form.trigger_on_dm} onCheckedChange={(v) => update("trigger_on_dm", v)} />
       </div>
 
       <div className="flex flex-col gap-2">
         <Label>Delay de resposta (segundos)</Label>
         <p className="text-xs text-muted-foreground">Entre 30 e 120 segundos.</p>
         <div className="flex items-center gap-3">
-          <Input type="number" min={30} max={120} value={form.delay_min_seconds}
-            onChange={(e) => update("delay_min_seconds", parseInt(e.target.value) || 30)} className="w-24" />
+          <Input
+            type="number"
+            min={30}
+            max={120}
+            value={form.delay_min_seconds}
+            onChange={(e) => update("delay_min_seconds", parseInt(e.target.value) || 30)}
+            className="w-24"
+          />
           <span className="text-sm text-muted-foreground">a</span>
-          <Input type="number" min={30} max={120} value={form.delay_max_seconds}
-            onChange={(e) => update("delay_max_seconds", parseInt(e.target.value) || 60)} className="w-24" />
+          <Input
+            type="number"
+            min={30}
+            max={120}
+            value={form.delay_max_seconds}
+            onChange={(e) => update("delay_max_seconds", parseInt(e.target.value) || 60)}
+            className="w-24"
+          />
         </div>
       </div>
 
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={() => navigate({ to: "/automations" })} disabled={submitting}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => navigate({ to: "/automations" })}
+          disabled={submitting}
+        >
           Cancelar
         </Button>
         <Button type="submit" disabled={submitting || resolveM.isPending}>
-          {submitting || resolveM.isPending ? <Loader2 className="size-4 animate-spin" /> : submitLabel}
-
+          {submitting || resolveM.isPending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            submitLabel
+          )}
         </Button>
       </div>
     </form>
