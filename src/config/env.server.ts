@@ -1,9 +1,13 @@
 import { requireEnvironment, requireHttpUrl, type EnvironmentSource } from "./env-validation";
 
+// Fallbacks públicos do backend Lovable Cloud deste projeto (safe em código).
+const FALLBACK_SUPABASE_URL = "https://ldzomiycbuztlykjyubd.supabase.co";
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_aiUs9nbrlVJGL7_Tk4fzfQ_yRiiHDR4";
+
 function serverSource(): EnvironmentSource {
   return {
-    SUPABASE_URL: process.env.SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY: process.env.SUPABASE_PUBLISHABLE_KEY,
+    SUPABASE_URL: process.env.SUPABASE_URL || FALLBACK_SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY: process.env.SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     INSTAREPLY_ENCRYPTION_KEY: process.env.INSTAREPLY_ENCRYPTION_KEY,
     VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL,
