@@ -9,7 +9,7 @@ import {
   zernioSendConversationMessage,
 } from "@/server/zernio.server";
 import { createStepLogger, parseZernioError, type StepLogger } from "@/lib/step-logger.server";
-import { matchedKeyword } from "@/lib/webhook-rules";
+import { getWebhookEventId, matchedKeyword } from "@/lib/webhook-rules";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -117,6 +117,17 @@ async function updateLog(logId: string | null, patch: LogPatch): Promise<void> {
   if (error) console.error("[webhook] updateLog failed:", error.message);
 }
 
+async function incrementAutomationCounter(
+  automationId: string,
+  counter: "failed" | "sent",
+): Promise<void> {
+  const { error } = await supabaseAdmin.rpc("increment_automation_counter", {
+    p_automation_id: automationId,
+    p_counter: counter,
+  });
+  if (error) console.error("[webhook] incrementAutomationCounter failed:", error.message);
+}
+
 async function finish(
   logger: StepLogger,
   logId: string | null,
@@ -182,8 +193,9 @@ async function handleWebhookPost({
   }
 
   const eventType = rawPayload.event ?? "unknown";
+  const externalEventId = getWebhookEventId(eventType, rawPayload)?.slice(0, 500) ?? null;
 
-  const { data: logRow } = await supabaseAdmin
+  const { data: logRow, error: logError } = await supabaseAdmin
     .from("automation_logs")
     .insert({
       user_id: userId,
@@ -194,9 +206,18 @@ async function handleWebhookPost({
       instagram_post_id:
         rawPayload.comment?.platformPostId ?? rawPayload.post?.platformPostId ?? null,
       event_type: eventType,
-    } as never)
+      external_event_id: externalEventId,
+    })
     .select("id")
     .maybeSingle();
+
+  if (logError?.code === "23505" && externalEventId) {
+    return jsonResponse({ ok: true, duplicate: true, event_id: externalEventId });
+  }
+  if (logError) {
+    console.error("[webhook] failed to reserve event:", logError.message);
+    return jsonResponse({ ok: false, error: "event_reservation_failed" }, 503);
+  }
 
   const logId = (logRow?.id as string | undefined) ?? null;
   const logger = createStepLogger(logId, userId);
@@ -407,10 +428,7 @@ async function handleMessageEvent({
     });
     await send.success({ apiResponse: res });
     await updateLog(logId, { automation_id: matchingDm.id, message_sent: dmMessage });
-    await supabaseAdmin
-      .from("automations")
-      .update({ total_sent: (matchingDm.total_sent ?? 0) + 1 })
-      .eq("id", matchingDm.id);
+    await incrementAutomationCounter(matchingDm.id, "sent");
     return finish(logger, logId, {
       status: "sent",
       responseBody: { action: "dm_trigger_sent" },
@@ -677,14 +695,7 @@ async function handleCommentEvent({
     message_sent: matching.custom_message,
   });
 
-  await supabaseAdmin
-    .from("automations")
-    .update(
-      primarySent
-        ? { total_sent: (matching.total_sent ?? 0) + 1 }
-        : { total_failed: (matching.total_failed ?? 0) + 1 },
-    )
-    .eq("id", matching.id);
+  await incrementAutomationCounter(matching.id, primarySent ? "sent" : "failed");
 
   // outgoing webhook
   if (primarySent && settings.outgoing_webhook_enabled && settings.outgoing_webhook_url) {

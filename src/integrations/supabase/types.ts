@@ -68,6 +68,7 @@ export type Database = {
           created_at: string;
           error: string | null;
           event_type: string | null;
+          external_event_id: string | null;
           finished_at: string | null;
           id: string;
           instagram_post_id: string | null;
@@ -85,6 +86,7 @@ export type Database = {
           created_at?: string;
           error?: string | null;
           event_type?: string | null;
+          external_event_id?: string | null;
           finished_at?: string | null;
           id?: string;
           instagram_post_id?: string | null;
@@ -102,6 +104,7 @@ export type Database = {
           created_at?: string;
           error?: string | null;
           event_type?: string | null;
+          external_event_id?: string | null;
           finished_at?: string | null;
           id?: string;
           instagram_post_id?: string | null;
@@ -260,7 +263,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      increment_automation_counter: {
+        Args: { p_automation_id: string; p_counter: "failed" | "sent" };
+        Returns: undefined;
+      };
     };
     Enums: {
       [_ in never]: never;
