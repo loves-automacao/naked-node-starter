@@ -57,7 +57,7 @@ export function LogTimeline({ logId, userId, headerMeta }: LogTimelineProps) {
           table: "automation_log_steps",
           filter: `log_id=eq.${logId}`,
         },
-        () => qc.invalidateQueries({ queryKey })
+        () => qc.invalidateQueries({ queryKey }),
       )
       .subscribe();
     return () => {
@@ -96,9 +96,7 @@ export function LogTimeline({ logId, userId, headerMeta }: LogTimelineProps) {
 
   if (steps.length === 0) {
     return (
-      <div className="text-sm text-muted-foreground py-4 text-center">
-        Sem etapas registradas.
-      </div>
+      <div className="text-sm text-muted-foreground py-4 text-center">Sem etapas registradas.</div>
     );
   }
 

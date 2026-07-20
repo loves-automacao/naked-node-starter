@@ -3,20 +3,36 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  Key, Camera, Webhook, Loader2, Check, X, Send, Eye, EyeOff,
-  BookOpen, Copy, CheckCircle2, ExternalLink, AlertTriangle, RefreshCw,
+  Key,
+  Camera,
+  Webhook,
+  Loader2,
+  Check,
+  X,
+  Send,
+  Eye,
+  EyeOff,
+  BookOpen,
+  Copy,
+  CheckCircle2,
+  ExternalLink,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
-import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  getSettings, saveZernioApiKey, connectInstagram, disconnectInstagram,
-  saveOutgoingWebhook, testConfiguration, clearPublishedOrigin,
+  getSettings,
+  saveZernioApiKey,
+  connectInstagram,
+  disconnectInstagram,
+  saveOutgoingWebhook,
+  testConfiguration,
+  clearPublishedOrigin,
 } from "@/lib/settings.functions";
 import { withAuthFetch } from "@/lib/server-fetch";
 
@@ -44,7 +60,9 @@ function SettingsPage() {
   const [webhookUrl, setWebhookUrl] = useState("");
   const [webhookEnabled, setWebhookEnabled] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
-  const [testResults, setTestResults] = useState<{ step: string; status: "ok" | "fail"; detail?: string }[] | null>(null);
+  const [testResults, setTestResults] = useState<
+    { step: string; status: "ok" | "fail"; detail?: string }[] | null
+  >(null);
 
   useEffect(() => {
     if (settings) {
@@ -80,7 +98,9 @@ function SettingsPage() {
 
   const saveWebhookM = useMutation({
     mutationFn: () =>
-      withAuthFetch(() => saveOutgoingWebhook({ data: { url: webhookUrl, enabled: webhookEnabled } })),
+      withAuthFetch(() =>
+        saveOutgoingWebhook({ data: { url: webhookUrl, enabled: webhookEnabled } }),
+      ),
     onSuccess: () => {
       toast.success("Webhook salvo");
       qc.invalidateQueries({ queryKey: ["settings"] });
@@ -94,16 +114,22 @@ function SettingsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const [zernioResults, setZernioResults] = useState<{ step: string; status: "ok" | "fail"; detail?: string }[] | null>(null);
+  const [zernioResults, setZernioResults] = useState<
+    { step: string; status: "ok" | "fail"; detail?: string }[] | null
+  >(null);
   const testZernioM = useMutation({
     mutationFn: async () => {
       const { supabase } = await import("@/integrations/supabase/client");
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const res = await fetch("/api/debug/zernio", {
         headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json() as Promise<{ results: { step: string; status: "ok" | "fail"; detail?: string }[] }>;
+      return res.json() as Promise<{
+        results: { step: string; status: "ok" | "fail"; detail?: string }[];
+      }>;
     },
     onSuccess: (r) => setZernioResults(r.results),
     onError: (e: Error) => toast.error(e.message),
@@ -181,7 +207,8 @@ function SettingsPage() {
             Guia de Configuração
           </CardTitle>
           <CardDescription>
-            {completedSteps}/{steps.length} etapas concluídas. Siga o passo a passo para ativar suas automações.
+            {completedSteps}/{steps.length} etapas concluídas. Siga o passo a passo para ativar suas
+            automações.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -189,7 +216,11 @@ function SettingsPage() {
             <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 p-4 text-sm text-yellow-700 dark:text-yellow-400 flex gap-3">
               <AlertTriangle className="size-5 shrink-0 mt-0.5" />
               <p>
-                <strong>Publique o projeto antes de mais nada.</strong> Sem publicá-lo não vai funcionar. Clique em Publish, botão azul no canto superior direito da tela. Aguarde finalizar a publicação e acesse o link público para poder usar o sistema e realizar as devidas configurações e para o sistema gerar a URL do webhook correta para você inserir na Zernio.
+                <strong>Publique o projeto antes de mais nada.</strong> Sem publicá-lo não vai
+                funcionar. Clique em Publish, botão azul no canto superior direito da tela. Aguarde
+                finalizar a publicação e acesse o link público para poder usar o sistema e realizar
+                as devidas configurações e para o sistema gerar a URL do webhook correta para você
+                inserir na Zernio.
               </p>
             </div>
             <div className="flex flex-col gap-2">
@@ -197,12 +228,16 @@ function SettingsPage() {
                 <div key={i} className="flex items-center gap-3">
                   <div
                     className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
-                      step.done ? "bg-green-500/10 text-green-500" : "bg-muted text-muted-foreground"
+                      step.done
+                        ? "bg-green-500/10 text-green-500"
+                        : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {step.done ? <Check className="size-3.5" /> : i + 1}
                   </div>
-                  <span className={`text-sm ${step.done ? "text-muted-foreground line-through" : ""}`}>
+                  <span
+                    className={`text-sm ${step.done ? "text-muted-foreground line-through" : ""}`}
+                  >
                     {step.label}
                   </span>
                 </div>
@@ -214,13 +249,22 @@ function SettingsPage() {
               <ol className="list-decimal list-inside flex flex-col gap-2 text-muted-foreground">
                 <li>
                   Crie uma conta em{" "}
-                  <a href="https://zernio.com/signup?ref=9471CBEA" target="_blank" rel="noopener noreferrer" className="text-primary underline inline-flex items-center gap-1">
+                  <a
+                    href="https://zernio.com/signup?ref=9471CBEA"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline inline-flex items-center gap-1"
+                  >
                     zernio.com <ExternalLink className="size-3" />
                   </a>{" "}
                   e ative o add-on <strong>Inbox</strong>
                 </li>
-                <li>Cole sua <strong>API Key</strong> da Zernio abaixo</li>
-                <li>Clique em <strong>Conectar Instagram</strong></li>
+                <li>
+                  Cole sua <strong>API Key</strong> da Zernio abaixo
+                </li>
+                <li>
+                  Clique em <strong>Conectar Instagram</strong>
+                </li>
                 <li>
                   Na Zernio, configure um webhook com:
                   <div className="mt-2 ml-4 flex flex-col gap-2">
@@ -233,7 +277,8 @@ function SettingsPage() {
                             : "border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400"
                         }`}
                       >
-                        {webhookEndpoint || "URL ainda não detectada — faça login no app publicado uma vez (qualquer página). A URL será detectada automaticamente."}
+                        {webhookEndpoint ||
+                          "URL ainda não detectada — faça login no app publicado uma vez (qualquer página). A URL será detectada automaticamente."}
                       </div>
                       {webhookEndpoint && (
                         <Button
@@ -243,7 +288,11 @@ function SettingsPage() {
                           onClick={copyWebhookUrl}
                           title="Copiar URL"
                         >
-                          {copiedWebhook ? <CheckCircle2 className="size-4 text-green-500" /> : <Copy className="size-4" />}
+                          {copiedWebhook ? (
+                            <CheckCircle2 className="size-4 text-green-500" />
+                          ) : (
+                            <Copy className="size-4" />
+                          )}
                         </Button>
                       )}
                       <Button
@@ -252,7 +301,9 @@ function SettingsPage() {
                         size="sm"
                         onClick={() => refreshOriginM.mutate()}
                         disabled={refreshOriginM.isPending}
-                        title={webhookEndpoint ? "Redetectar URL pública" : "Tentar detectar URL pública"}
+                        title={
+                          webhookEndpoint ? "Redetectar URL pública" : "Tentar detectar URL pública"
+                        }
                       >
                         {refreshOriginM.isPending ? (
                           <Loader2 className="size-4 animate-spin" />
@@ -279,7 +330,11 @@ function SettingsPage() {
                 disabled={testM.isPending}
                 className="w-full font-semibold py-5"
               >
-                {testM.isPending ? <Loader2 className="size-4 animate-spin mr-2" /> : <CheckCircle2 className="size-4 mr-2" />}
+                {testM.isPending ? (
+                  <Loader2 className="size-4 animate-spin mr-2" />
+                ) : (
+                  <CheckCircle2 className="size-4 mr-2" />
+                )}
                 Testar Configuração
               </Button>
 
@@ -298,7 +353,11 @@ function SettingsPage() {
                       )}
                       <div className="flex-1 min-w-0">
                         <span className="font-medium">{r.step}</span>
-                        {r.detail && <p className="text-xs text-muted-foreground mt-0.5 break-all">{r.detail}</p>}
+                        {r.detail && (
+                          <p className="text-xs text-muted-foreground mt-0.5 break-all">
+                            {r.detail}
+                          </p>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -311,7 +370,11 @@ function SettingsPage() {
                 variant="outline"
                 className="w-full"
               >
-                {testZernioM.isPending ? <Loader2 className="size-4 animate-spin mr-2" /> : <RefreshCw className="size-4 mr-2" />}
+                {testZernioM.isPending ? (
+                  <Loader2 className="size-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="size-4 mr-2" />
+                )}
                 Testar Zernio (API + Inbox)
               </Button>
 
@@ -330,7 +393,11 @@ function SettingsPage() {
                       )}
                       <div className="flex-1 min-w-0">
                         <span className="font-medium">{r.step}</span>
-                        {r.detail && <p className="text-xs text-muted-foreground mt-0.5 break-all">{r.detail}</p>}
+                        {r.detail && (
+                          <p className="text-xs text-muted-foreground mt-0.5 break-all">
+                            {r.detail}
+                          </p>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -343,7 +410,9 @@ function SettingsPage() {
                 <Key className="size-4 text-primary" />
                 <Label className="text-sm font-medium">Etapa 2 — Zernio API Key</Label>
                 {hasApiKey && (
-                  <Badge className="bg-green-500/10 text-green-500 border-0 ml-auto text-xs">Configurada</Badge>
+                  <Badge className="bg-green-500/10 text-green-500 border-0 ml-auto text-xs">
+                    Configurada
+                  </Badge>
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -359,14 +428,19 @@ function SettingsPage() {
                     className="pr-10"
                   />
                   <Button
-                    type="button" variant="ghost" size="icon"
+                    type="button"
+                    variant="ghost"
+                    size="icon"
                     className="absolute right-0 top-0 h-full px-3 text-muted-foreground"
                     onClick={() => setShowApiKey(!showApiKey)}
                   >
                     {showApiKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </Button>
                 </div>
-                <Button onClick={() => saveKeyM.mutate(apiKey)} disabled={!apiKey.trim() || saveKeyM.isPending}>
+                <Button
+                  onClick={() => saveKeyM.mutate(apiKey)}
+                  disabled={!apiKey.trim() || saveKeyM.isPending}
+                >
                   {saveKeyM.isPending ? <Loader2 className="size-4 animate-spin" /> : "Salvar"}
                 </Button>
               </div>
@@ -377,7 +451,9 @@ function SettingsPage() {
                 <Camera className="size-4 text-primary" />
                 <Label className="text-sm font-medium">Etapa 3 — Conectar Instagram</Label>
                 {instagramConnected && settings.instagram_username && (
-                  <Badge className="bg-green-500/10 text-green-500 border-0 ml-auto text-xs">@{settings.instagram_username}</Badge>
+                  <Badge className="bg-green-500/10 text-green-500 border-0 ml-auto text-xs">
+                    @{settings.instagram_username}
+                  </Badge>
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -385,12 +461,18 @@ function SettingsPage() {
               </p>
               {instagramConnected ? (
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => connectIgM.mutate()} disabled={connectIgM.isPending}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => connectIgM.mutate()}
+                    disabled={connectIgM.isPending}
+                  >
                     <Camera className="size-3.5" />
                     Reconectar
                   </Button>
                   <Button
-                    variant="outline" size="sm"
+                    variant="outline"
+                    size="sm"
                     className="text-destructive hover:bg-destructive/10"
                     onClick={() => disconnectIgM.mutate()}
                     disabled={disconnectIgM.isPending}
@@ -400,13 +482,23 @@ function SettingsPage() {
                   </Button>
                 </div>
               ) : (
-                <Button onClick={() => connectIgM.mutate()} size="sm" disabled={!hasApiKey || connectIgM.isPending}>
-                  {connectIgM.isPending ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
+                <Button
+                  onClick={() => connectIgM.mutate()}
+                  size="sm"
+                  disabled={!hasApiKey || connectIgM.isPending}
+                >
+                  {connectIgM.isPending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Camera className="size-4" />
+                  )}
                   Conectar Instagram
                 </Button>
               )}
               {!hasApiKey && (
-                <p className="text-xs text-muted-foreground">Salve sua Zernio API Key antes de conectar o Instagram.</p>
+                <p className="text-xs text-muted-foreground">
+                  Salve sua Zernio API Key antes de conectar o Instagram.
+                </p>
               )}
             </div>
           </div>
@@ -418,10 +510,13 @@ function SettingsPage() {
           <CardTitle className="flex items-center gap-2">
             <Webhook className="size-4" />
             Webhook de Saída
-            <Badge variant="secondary" className="text-xs font-normal ml-1">Opcional</Badge>
+            <Badge variant="secondary" className="text-xs font-normal ml-1">
+              Opcional
+            </Badge>
           </CardTitle>
           <CardDescription>
-            Receba notificações externas quando DMs forem enviadas. Útil pra integrar com CRMs, n8n, Make, etc.
+            Receba notificações externas quando DMs forem enviadas. Útil pra integrar com CRMs, n8n,
+            Make, etc.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -430,7 +525,11 @@ function SettingsPage() {
               <Label htmlFor="webhook-toggle" className="text-sm">
                 {webhookEnabled ? "Ativado" : "Desativado"}
               </Label>
-              <Switch id="webhook-toggle" checked={webhookEnabled} onCheckedChange={setWebhookEnabled} />
+              <Switch
+                id="webhook-toggle"
+                checked={webhookEnabled}
+                onCheckedChange={setWebhookEnabled}
+              />
             </div>
             <div className="flex gap-2">
               <Input
@@ -440,7 +539,11 @@ function SettingsPage() {
                 onChange={(e) => setWebhookUrl(e.target.value)}
                 className="flex-1"
               />
-              <Button variant="outline" onClick={() => saveWebhookM.mutate()} disabled={saveWebhookM.isPending}>
+              <Button
+                variant="outline"
+                onClick={() => saveWebhookM.mutate()}
+                disabled={saveWebhookM.isPending}
+              >
                 {saveWebhookM.isPending ? <Loader2 className="size-4 animate-spin" /> : "Salvar"}
               </Button>
               <Button variant="outline" disabled={!webhookUrl.trim()}>
