@@ -9,7 +9,8 @@ import {
   zernioSendConversationMessage,
 } from "@/server/zernio.server";
 import { createStepLogger, parseZernioError, type StepLogger } from "@/lib/step-logger.server";
-import { getWebhookEventId, matchedKeyword } from "@/lib/webhook-rules";
+import { getWebhookEventId, isWebhookBodyTooLarge, matchedKeyword } from "@/lib/webhook-rules";
+import { fetchWithTimeout } from "@/server/http.server";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -75,14 +76,10 @@ export const Route = createFileRoute("/api/webhooks/zernio/$token")({
           return await handleWebhookPost({ request, params });
         } catch (e) {
           console.error("[webhook] uncaught error:", e);
-          return new Response(
-            JSON.stringify({
-              ok: true,
-              error: "internal",
-              message: e instanceof Error ? e.message : String(e),
-            }),
-            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
-          );
+          return new Response(JSON.stringify({ ok: false, error: "internal" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
         }
       },
     },
@@ -176,10 +173,17 @@ async function handleWebhookPost({
   if (!profile) return jsonResponse({ error: "unknown token" }, 404);
   const userId = profile.id;
 
+  if (isWebhookBodyTooLarge(request.headers.get("content-length"))) {
+    return jsonResponse({ error: "payload_too_large" }, 413);
+  }
+
   let rawBodyText = "";
   let rawPayload: ZernioCommentEvent & ZernioMessageEvent = {};
   try {
     rawBodyText = await request.text();
+    if (isWebhookBodyTooLarge(null, rawBodyText)) {
+      return jsonResponse({ error: "payload_too_large" }, 413);
+    }
     if (rawBodyText) {
       rawPayload = JSON.parse(rawBodyText) as ZernioCommentEvent & ZernioMessageEvent;
     }
@@ -242,7 +246,7 @@ async function handleWebhookPost({
     });
   }
 
-  return handleCommentEvent({ userId, rawPayload, logger, logId });
+  return handleCommentEvent({ userId, rawPayload, logger, logId, externalEventId });
 }
 
 async function handleMessageEvent({
@@ -337,6 +341,7 @@ async function handleMessageEvent({
       .eq("user_id", userId)
       .eq("is_active", true)
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .limit(1);
     const matching = autos?.[0];
     await findAuto.success({ extraContext: { automation_id: matching?.id ?? null } });
@@ -381,7 +386,9 @@ async function handleMessageEvent({
     .select("*")
     .eq("user_id", userId)
     .eq("is_active", true)
-    .eq("trigger_on_dm", true);
+    .eq("trigger_on_dm", true)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
 
   let matchedKw: string | null = null;
   const matchingDm = (dmAutos ?? []).find((a) => {
@@ -450,11 +457,13 @@ async function handleCommentEvent({
   rawPayload,
   logger,
   logId,
+  externalEventId,
 }: {
   userId: string;
   rawPayload: ZernioCommentEvent;
   logger: StepLogger;
   logId: string | null;
+  externalEventId: string | null;
 }): Promise<Response> {
   const pc = rawPayload.comment!;
   const comment = {
@@ -494,7 +503,13 @@ async function handleCommentEvent({
       )
       .eq("user_id", userId)
       .maybeSingle(),
-    supabaseAdmin.from("automations").select("*").eq("user_id", userId).eq("is_active", true),
+    supabaseAdmin
+      .from("automations")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false }),
   ]);
 
   if (!settings?.zernio_api_key_encrypted || !settings?.zernio_account_id) {
@@ -703,9 +718,12 @@ async function handleCommentEvent({
       url: settings.outgoing_webhook_url,
     });
     try {
-      const r = await fetch(settings.outgoing_webhook_url, {
+      const r = await fetchWithTimeout(settings.outgoing_webhook_url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(externalEventId ? { "Idempotency-Key": `${userId}:${externalEventId}` } : {}),
+        },
         body: JSON.stringify({
           event: "dm.sent",
           automation_id: matching.id,
@@ -716,7 +734,10 @@ async function handleCommentEvent({
         }),
       });
       if (!r.ok) {
-        const body = await r.text().catch(() => "");
+        const body = await r
+          .text()
+          .then((text) => text.slice(0, 2_000))
+          .catch(() => "");
         const err = new Error(`HTTP ${r.status}: ${body}`) as Error & {
           apiStatus: number;
           apiBody: unknown;

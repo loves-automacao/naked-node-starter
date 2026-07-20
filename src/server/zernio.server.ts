@@ -1,6 +1,6 @@
 // Server-only: cliente HTTP da Zernio.
 // Endpoints validados conforme documentação oficial fornecida pelo suporte da Zernio.
-const ZERNIO_BASE = process.env.ZERNIO_API_BASE || "https://zernio.com/api/v1";
+import { getZernioApiBase } from "@/config/env.server";
 
 interface ZernioFetchOpts {
   apiKey: string;
@@ -25,7 +25,7 @@ async function zernioFetch<T>({
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   let res: Response;
   try {
-    res = await fetch(`${ZERNIO_BASE}${path}`, {
+    res = await fetch(`${getZernioApiBase()}${path}`, {
       method,
       headers: {
         Authorization: `Bearer ${apiKey}`,

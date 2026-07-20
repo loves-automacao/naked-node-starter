@@ -28,3 +28,18 @@ export function getWebhookEventId(
   const normalized = candidate?.trim();
   return normalized || null;
 }
+
+export const MAX_WEBHOOK_BODY_BYTES = 256 * 1024;
+
+export function isWebhookBodyTooLarge(
+  contentLength: string | null,
+  body?: string,
+  maxBytes = MAX_WEBHOOK_BODY_BYTES,
+): boolean {
+  if (contentLength) {
+    const declaredBytes = Number(contentLength);
+    if (Number.isFinite(declaredBytes) && declaredBytes > maxBytes) return true;
+  }
+
+  return body !== undefined && new TextEncoder().encode(body).byteLength > maxBytes;
+}

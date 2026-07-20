@@ -4,8 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { decryptString } from "@/server/crypto.server";
-
-const ZERNIO_BASE = process.env.ZERNIO_API_BASE || "https://zernio.com/api/v1";
+import { getServerSupabasePublicConfig, getZernioApiBase } from "@/config/env.server";
 
 interface CheckResult {
   step: string;
@@ -21,7 +20,7 @@ async function pingZernio(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(`${ZERNIO_BASE}${path}`, {
+    const res = await fetch(`${getZernioApiBase()}${path}`, {
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
@@ -50,14 +49,11 @@ export const Route = createFileRoute("/api/debug/zernio")({
         }
         const token = authHeader.replace("Bearer ", "");
 
-        const supabase = createClient<Database>(
-          process.env.SUPABASE_URL!,
-          process.env.SUPABASE_PUBLISHABLE_KEY!,
-          {
-            global: { headers: { Authorization: `Bearer ${token}` } },
-            auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
-          },
-        );
+        const { url, key } = getServerSupabasePublicConfig();
+        const supabase = createClient<Database>(url, key, {
+          global: { headers: { Authorization: `Bearer ${token}` } },
+          auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
+        });
 
         const { data: claims } = await supabase.auth.getClaims(token);
         const userId = claims?.claims?.sub;

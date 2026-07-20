@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getWebhookEventId, matchedKeyword } from "./webhook-rules";
+import { getWebhookEventId, isWebhookBodyTooLarge, matchedKeyword } from "./webhook-rules";
 
 describe("matchedKeyword", () => {
   it("encontra palavras sem diferenciar maiúsculas e minúsculas", () => {
@@ -39,5 +39,17 @@ describe("getWebhookEventId", () => {
     expect(getWebhookEventId("account.updated", { id: "envelope-123" })).toBe("envelope-123");
     expect(getWebhookEventId("unknown", {})).toBeNull();
     expect(getWebhookEventId("unknown", { id: "   " })).toBeNull();
+  });
+});
+
+describe("isWebhookBodyTooLarge", () => {
+  it("rejeita content-length e conteúdo acima do limite", () => {
+    expect(isWebhookBodyTooLarge("11", undefined, 10)).toBe(true);
+    expect(isWebhookBodyTooLarge(null, "áááááá", 10)).toBe(true);
+  });
+
+  it("aceita conteúdo dentro do limite e ignora header inválido", () => {
+    expect(isWebhookBodyTooLarge("10", undefined, 10)).toBe(false);
+    expect(isWebhookBodyTooLarge("unknown", "ok", 10)).toBe(false);
   });
 });
