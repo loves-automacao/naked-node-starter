@@ -130,7 +130,7 @@ export async function zernioResolvePostByShortcode(input: {
     const qs = new URLSearchParams({
       platform: "instagram",
       accountId: input.accountId,
-      limit: "100",
+      limit: "25",
       minComments: "0",
     });
     if (cursor) qs.set("cursor", cursor);
@@ -140,7 +140,7 @@ export async function zernioResolvePostByShortcode(input: {
     }>({
       apiKey: input.apiKey,
       path: `/inbox/comments?${qs.toString()}`,
-      timeoutMs: 8000,
+      timeoutMs: 25000,
     });
     const hit = (data.data ?? []).find(
       (p) => p.accountId === input.accountId && (p.permalink ?? "").includes(target),
