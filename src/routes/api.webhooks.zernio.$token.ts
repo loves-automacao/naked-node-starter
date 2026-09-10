@@ -10,6 +10,7 @@ import {
 } from "@/server/zernio.server";
 import { createStepLogger, parseZernioError, type StepLogger } from "@/lib/step-logger.server";
 import { getWebhookEventId, isWebhookBodyTooLarge, matchedKeyword } from "@/lib/webhook-rules";
+import { enrollDelayedMessage } from "@/server/sequences.server";
 import { fetchWithTimeout } from "@/server/http.server";
 
 const corsHeaders = {
@@ -21,6 +22,8 @@ const corsHeaders = {
 const sleep = (delayMs: number) => new Promise<void>((resolve) => setTimeout(resolve, delayMs));
 
 interface ZernioCommentEvent {
+  sender?: { contactId?: string };
+  conversation?: { contactId?: string };
   id?: string;
   event?: string;
   comment?: {
@@ -36,6 +39,8 @@ interface ZernioCommentEvent {
 }
 
 interface ZernioMessageEvent {
+  sender?: { contactId?: string };
+  conversation?: { contactId?: string };
   id?: string;
   event?: string;
   message?: {
@@ -46,6 +51,7 @@ interface ZernioMessageEvent {
     sender?: {
       id?: string;
       username?: string;
+      contactId?: string;
       instagramProfile?: { isFollower?: boolean | null };
     };
   };
@@ -438,6 +444,7 @@ async function handleMessageEvent({
     await send.success({ apiResponse: res });
     await updateLog(logId, { automation_id: matchingDm.id, message_sent: dmMessage });
     await incrementAutomationCounter(matchingDm.id, "sent");
+    await enrollDelayedMessage({ automation: matchingDm, apiKey, accountId: settings.zernio_account_id, participantId: senderId ?? '', contactId: msg.sender?.contactId ?? rawPayload.sender?.contactId ?? rawPayload.conversation?.contactId, logger });
     return finish(logger, logId, {
       status: "sent",
       responseBody: { action: "dm_trigger_sent" },
@@ -717,6 +724,10 @@ async function handleCommentEvent({
   });
 
   await incrementAutomationCounter(matching.id, primarySent ? "sent" : "failed");
+
+  if (primarySent) {
+    await enrollDelayedMessage({ automation: matching, apiKey, accountId: settings.zernio_account_id, participantId: comment.fromId ?? '', contactId: rawPayload.sender?.contactId ?? rawPayload.conversation?.contactId, logger });
+  }
 
   // outgoing webhook
   if (primarySent && settings.outgoing_webhook_enabled && settings.outgoing_webhook_url) {

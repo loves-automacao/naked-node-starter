@@ -139,6 +139,10 @@ export type Database = {
           custom_message: string
           delay_max_seconds: number
           delay_min_seconds: number
+          delayed_delay_minutes: number
+          delayed_enabled: boolean
+          delayed_exit_on_reply: boolean
+          delayed_message: string
           followup_message: string
           id: string
           instagram_post_id: string
@@ -153,6 +157,7 @@ export type Database = {
           trigger_on_dm: boolean
           updated_at: string
           user_id: string
+          zernio_sequence_id: string | null
         }
         Insert: {
           buttons?: Json
@@ -160,6 +165,10 @@ export type Database = {
           custom_message?: string
           delay_max_seconds?: number
           delay_min_seconds?: number
+          delayed_delay_minutes?: number
+          delayed_enabled?: boolean
+          delayed_exit_on_reply?: boolean
+          delayed_message?: string
           followup_message?: string
           id?: string
           instagram_post_id: string
@@ -174,6 +183,7 @@ export type Database = {
           trigger_on_dm?: boolean
           updated_at?: string
           user_id: string
+          zernio_sequence_id?: string | null
         }
         Update: {
           buttons?: Json
@@ -181,6 +191,10 @@ export type Database = {
           custom_message?: string
           delay_max_seconds?: number
           delay_min_seconds?: number
+          delayed_delay_minutes?: number
+          delayed_enabled?: boolean
+          delayed_exit_on_reply?: boolean
+          delayed_message?: string
           followup_message?: string
           id?: string
           instagram_post_id?: string
@@ -195,6 +209,7 @@ export type Database = {
           trigger_on_dm?: boolean
           updated_at?: string
           user_id?: string
+          zernio_sequence_id?: string | null
         }
         Relationships: []
       }

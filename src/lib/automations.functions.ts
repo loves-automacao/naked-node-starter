@@ -40,11 +40,17 @@ export const createAutomation = createServerFn({ method: "POST" })
         delay_min_seconds: data.delay_min_seconds,
         delay_max_seconds: data.delay_max_seconds,
         trigger_on_dm: data.trigger_on_dm ?? false,
+        delayed_enabled: data.delayed_enabled,
+        delayed_message: data.delayed_message,
+        delayed_delay_minutes: data.delayed_delay_minutes,
+        delayed_exit_on_reply: data.delayed_exit_on_reply,
       })
       .select()
       .single();
     if (error) throw new Error(error.message);
-    return { automation: row };
+    const { syncSequence } = await import('@/server/sequences.server');
+    const warning = await syncSequence(supabase, row);
+    return { automation: row, warning };
   });
 
 export const getAutomation = createServerFn({ method: "GET" })
@@ -88,13 +94,19 @@ export const updateAutomation = createServerFn({ method: "POST" })
         delay_min_seconds: rest.delay_min_seconds,
         delay_max_seconds: rest.delay_max_seconds,
         trigger_on_dm: rest.trigger_on_dm ?? false,
+        delayed_enabled: rest.delayed_enabled,
+        delayed_message: rest.delayed_message,
+        delayed_delay_minutes: rest.delayed_delay_minutes,
+        delayed_exit_on_reply: rest.delayed_exit_on_reply,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
       .select()
       .single();
     if (error) throw new Error(error.message);
-    return { automation: row };
+    const { syncSequence } = await import('@/server/sequences.server');
+    const warning = await syncSequence(supabase, row);
+    return { automation: row, warning };
   });
 
 export const toggleAutomation = createServerFn({ method: "POST" })
@@ -102,12 +114,14 @@ export const toggleAutomation = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string; is_active: boolean }) => input)
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const { error } = await supabase
+    const { data: row, error } = await supabase
       .from("automations")
       .update({ is_active: data.is_active })
-      .eq("id", data.id);
+      .eq("id", data.id).select().single();
     if (error) throw new Error(error.message);
-    return { success: true };
+    const { syncSequence } = await import('@/server/sequences.server');
+    const warning = await syncSequence(supabase, row);
+    return { success: true, warning };
   });
 
 export const deleteAutomation = createServerFn({ method: "POST" })
@@ -115,6 +129,11 @@ export const deleteAutomation = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string }) => input)
   .handler(async ({ data, context }) => {
     const { supabase } = context;
+    const { data: row, error: readError } = await supabase.from('automations').select('*').eq('id', data.id).single();
+    if (readError) throw new Error(readError.message);
+    const { syncSequence } = await import('@/server/sequences.server');
+    const warning = await syncSequence(supabase, { ...row, delayed_enabled: false, is_active: false });
+    if (warning) throw new Error('Não foi possível pausar a sequência na Zernio. Tente novamente antes de excluir.');
     const { error } = await supabase.from("automations").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { success: true };

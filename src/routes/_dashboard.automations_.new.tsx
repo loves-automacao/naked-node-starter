@@ -25,7 +25,8 @@ function NewAutomationPage() {
   const createM = useMutation({
     mutationFn: (data: Parameters<typeof createAutomation>[0]["data"]) =>
       withAuthFetch(() => createAutomation({ data })),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result.warning) toast.warning(result.warning);
       toast.success("Automação criada!");
       navigate({ to: "/automations" });
     },
