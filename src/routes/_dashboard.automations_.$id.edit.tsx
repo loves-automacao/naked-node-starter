@@ -23,7 +23,8 @@ function EditAutomationPage() {
   const updateM = useMutation({
     mutationFn: (input: Parameters<typeof updateAutomation>[0]["data"]) =>
       withAuthFetch(() => updateAutomation({ data: input })),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result.warning) toast.warning(result.warning);
       toast.success("Automação atualizada!");
       qc.invalidateQueries({ queryKey: ["automations"] });
       navigate({ to: "/automations" });
@@ -49,6 +50,10 @@ function EditAutomationPage() {
 
   const a = data.automation;
   const initialValues: AutomationFormValues = {
+    delayed_enabled: a.delayed_enabled,
+    delayed_message: a.delayed_message,
+    delayed_delay_minutes: a.delayed_delay_minutes,
+    delayed_exit_on_reply: a.delayed_exit_on_reply,
     name: a.name,
     instagram_post_id: a.instagram_post_id,
     instagram_post_type: a.instagram_post_type === "story" ? "story" : "post",

@@ -51,7 +51,7 @@ function AutomationsPage() {
   const toggleM = useMutation({
     mutationFn: (vars: { id: string; is_active: boolean }) =>
       withAuthFetch(() => toggleAutomation({ data: vars })),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["automations"] }),
+    onSuccess: (result) => { if (result.warning) toast.warning(result.warning); qc.invalidateQueries({ queryKey: ["automations"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 

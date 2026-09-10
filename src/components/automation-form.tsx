@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import type { AutomationInput } from "@/lib/automations.functions";
 import { resolveInstagramMediaId } from "@/lib/instagram-post.functions";
 import { withAuthFetch } from "@/lib/server-fetch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { parsePostInput } from "@/lib/instagram-post";
 
 export interface AutomationFormValues {
@@ -28,6 +29,10 @@ export interface AutomationFormValues {
   delay_min_seconds: number;
   delay_max_seconds: number;
   trigger_on_dm: boolean;
+  delayed_enabled?: boolean;
+  delayed_message?: string;
+  delayed_delay_minutes?: number;
+  delayed_exit_on_reply?: boolean;
 }
 
 interface AutomationFormProps {
@@ -55,7 +60,8 @@ export function AutomationForm({
   onSubmit,
 }: AutomationFormProps) {
   const navigate = useNavigate();
-  const [form, setForm] = useState<AutomationFormValues>(initialValues);
+  const [form, setForm] = useState<AutomationFormValues>({ delayed_enabled: false, delayed_message: '', delayed_delay_minutes: 1440, delayed_exit_on_reply: true, ...initialValues });
+  const [delayUnit, setDelayUnit] = useState('1440');
 
   function update<K extends keyof AutomationFormValues>(key: K, value: AutomationFormValues[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -178,6 +184,10 @@ export function AutomationForm({
       delay_min_seconds: form.delay_min_seconds,
       delay_max_seconds: form.delay_max_seconds,
       trigger_on_dm: form.trigger_on_dm,
+      delayed_enabled: form.delayed_enabled,
+      delayed_message: form.delayed_message,
+      delayed_delay_minutes: form.delayed_delay_minutes,
+      delayed_exit_on_reply: form.delayed_exit_on_reply,
     });
   }
 
@@ -468,6 +478,25 @@ export function AutomationForm({
           />
         </div>
       </div>
+
+      <section className="flex flex-col gap-4 border-t border-border pt-5">
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor="delayed-enabled">Mensagem depois de um tempo</Label>
+          <Switch id="delayed-enabled" checked={form.delayed_enabled} onCheckedChange={v => update('delayed_enabled', v)} />
+        </div>
+        {form.delayed_enabled && <>
+          <Label htmlFor="delayed-message">Mensagem atrasada</Label>
+          <textarea id="delayed-message" required maxLength={1000} rows={4} value={form.delayed_message} onChange={e => update('delayed_message', e.target.value)} className="w-full rounded-md border border-input bg-background p-3 text-sm" />
+          <span className="text-xs text-muted-foreground">{form.delayed_message?.length ?? 0}/1000 caracteres</span>
+          <Label htmlFor="delayed-time">Enviar depois de</Label>
+          <div className="flex gap-3">
+            <Input id="delayed-time" type="number" required min={1 / Number(delayUnit)} max={10080 / Number(delayUnit)} step="any" value={(form.delayed_delay_minutes ?? 1440) / Number(delayUnit)} onChange={e => update('delayed_delay_minutes', Math.round(Number(e.target.value) * Number(delayUnit)))} />
+            <Select value={delayUnit} onValueChange={setDelayUnit}><SelectTrigger aria-label="Unidade de tempo" className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1">Minutos</SelectItem><SelectItem value="60">Horas</SelectItem><SelectItem value="1440">Dias</SelectItem></SelectContent></Select>
+          </div>
+          {(form.delayed_delay_minutes ?? 1440) > 1380 && <p role="alert" className="text-sm text-destructive">O Instagram pode recusar mensagens fora da janela de 24h após a última interação. Prefira menos de 23h; comentários não garantem a abertura dessa janela.</p>}
+          <div className="flex items-center justify-between gap-3"><Label htmlFor="delayed-exit">Não enviar se a pessoa já tiver respondido</Label><Switch id="delayed-exit" checked={form.delayed_exit_on_reply} onCheckedChange={v => update('delayed_exit_on_reply', v)} /></div>
+        </>}
+      </section>
 
       <div className="flex justify-end gap-2 pt-2">
         <Button
