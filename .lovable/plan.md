@@ -1,43 +1,33 @@
-# Mensagem atrasada (ex.: 1 dia depois do trigger)
+# Mensagem automática algum tempo depois do gatilho
 
-Hoje a automação envia duas mensagens na hora (primeira DM + follow-up). A ideia é ter uma **terceira mensagem opcional**, enviada automaticamente depois de um tempo configurável.
+Confirmei na documentação da Zernio: existe mesmo o recurso de **Sequências** (`/v1/sequences`), com passos que têm atraso em minutos, além de `exitOnReply` e `exitOnUnsubscribe`. Ou seja, o próprio Zernio guarda a fila e dispara na hora certa — não precisamos criar fila nem rotina de verificação no nosso banco. É o caminho mais simples e confiável.
 
-## Aviso importante sobre o Instagram
+## Como vai funcionar
 
-O Instagram só permite mandar DM para alguém dentro de **24 horas** após a última interação da pessoa. Passou disso, a Meta bloqueia o envio (é o mesmo erro 403 que já apareceu antes com a tag de "atendimento humano", que exige aprovação da Meta).
+Na tela de criar/editar automação entra um bloco novo, opcional:
 
-Consequência prática:
+- Liga/desliga "Mensagem depois de um tempo".
+- Texto da mensagem.
+- Quando enviar: número + unidade (minutos / horas / dias). Padrão sugerido: 1 dia.
+- Opção "não enviar se a pessoa já tiver respondido" (ligada por padrão).
 
-- Atraso de até 24h: funciona normalmente.
-- Atraso de 1 dia ou mais: só chega se a pessoa tiver respondido nesse meio tempo (o relógio reinicia a cada resposta dela). Senão, a tentativa é registrada nos logs como falha explicando o motivo.
+Ao salvar a automação com esse bloco ligado, o app cria (ou atualiza) uma sequência correspondente na Zernio com um passo, guardando o identificador dela junto da automação. Se o bloco for desligado, a sequência é pausada.
 
-Por isso o campo vai sugerir **23 horas** como padrão seguro, permitindo valores maiores com um aviso visível na tela.
+Quando alguém comenta e a automação roda normalmente, logo depois do envio das mensagens imediatas a pessoa é inscrita nessa sequência. A Zernio faz o disparo no prazo configurado.
 
-## O que muda
+## O que aparece nos logs
 
-**1. Configuração na automação**
+Duas etapas novas na linha do tempo do log: "Inscrevendo na sequência" (com sucesso/erro) e o resultado retornado pela Zernio. O envio em si acontece do lado deles, então o log mostra a inscrição, não a entrega final — para conferir entregas, a aba de sequências do painel Zernio é a fonte.
 
-Novos campos no formulário de automação (Nova / Editar):
+## Limite do Instagram
 
-- Liga/desliga "Mensagem atrasada".
-- Texto da mensagem (com contador de caracteres, como os outros campos).
-- Atraso: número + unidade (minutos / horas / dias), com aviso quando passar de 24h.
-
-**2. Fila de envios**
-
-Quando o trigger roda e a primeira DM é enviada com sucesso, a automação agenda a mensagem atrasada numa fila no banco, com a hora prevista de envio, o destinatário e o texto.
-
-**3. Processador automático**
-
-Uma rotina roda a cada 15 minutos, pega os envios vencidos, manda pela Zernio e marca como enviado ou falho. Cada tentativa aparece na linha do tempo do log original, junto com as outras etapas — então o histórico continua num lugar só.
-
-Cadência: 15 em 15 minutos significa 96 verificações por dia e um atraso máximo de 15 minutos em relação ao horário exato. Verificações mais frequentes mantêm o banco acordado mesmo sem trabalho e aumentam o custo; 15 minutos é o equilíbrio para uma mensagem que já é de horas/dias.
+A Meta só permite DM dentro de 24h após a última interação da pessoa. Um atraso de 1 dia fica no limite: se a pessoa não interagiu mais, a Meta pode recusar a entrega. O campo vai mostrar esse aviso quando o atraso passar de 23 horas, e sugerir 23h como valor seguro.
 
 ## Detalhes técnicos
 
-- Migration: colunas `delayed_message_enabled`, `delayed_message`, `delayed_delay_seconds` em `automations`; nova tabela `scheduled_messages` (`user_id`, `automation_id`, `log_id`, `recipient_id`, `message`, `send_after`, `status`, `attempts`, `error`, `sent_at`) com GRANTs, RLS por `auth.uid()` e índice em `(status, send_after)`.
-- Enfileiramento em `src/routes/api.webhooks.zernio.$token.ts`, após o bloco de follow-up, usando o client admin (o webhook já roda sem sessão).
-- Novo endpoint `src/routes/api/public/hooks/process-scheduled.ts`: valida o header `apikey`, busca `status='pending' AND send_after <= now()` (limite 50), descriptografa a chave Zernio do dono, localiza a conversa via `zernioFindConversationId` e envia com `zernioSendConversationMessage`. Falha por janela de 24h fechada é marcada como `failed` com mensagem amigável (sem retry infinito: máximo 3 tentativas).
-- `pg_cron` + `pg_net` chamando esse endpoint a cada 15 min (`*/15 * * * *`), configurado via SQL direto (não migration, pois contém URL e chave do projeto).
-- Cada envio registra um step `delayed_message` no `automation_log_steps` do log original, reaproveitando `step-logger.server.ts`.
-- Validação em `src/lib/automation-rules.ts`: atraso entre 1 minuto e 7 dias; texto máximo de 1000 caracteres (80 se um dia houver botões).
+- Migration em `automations`: `delayed_enabled boolean default false`, `delayed_message text default ''`, `delayed_delay_minutes integer default 1440`, `delayed_exit_on_reply boolean default true`, `zernio_sequence_id text`.
+- `src/server/zernio.server.ts`: novas funções `zernioCreateSequence` (POST `/sequences` com `profileId`, `accountId`, `platform: "instagram"`, `name`, `steps: [{ order: 1, delayMinutes, message: { text } }]`, `exitOnReply`, `exitOnUnsubscribe: true`), `zernioUpdateSequence` (PATCH), `zernioActivateSequence` / `zernioPauseSequence`, `zernioEnrollContact` (POST `/sequences/{id}/enroll` com `contactIds`), e `zernioGetProfileId` (GET `/profiles`, primeiro perfil do dono da conta) — o `profileId` é obrigatório na criação.
+- `src/lib/automations.functions.ts`: em create/update, quando `delayed_enabled`, sincroniza a sequência na Zernio (criar → ativar, ou atualizar) e persiste `zernio_sequence_id`; quando desligado, pausa. Falha de API não bloqueia o salvamento — retorna aviso para a UI mostrar um toast.
+- `src/routes/api.webhooks.zernio.$token.ts`: após o bloco de follow-up (e no fluxo de DM), se a automação tem `zernio_sequence_id` ativo, resolve o contato e chama enroll, dentro de um step `sequence_enroll` do `step-logger.server.ts`. O contato vem de `sender.contactId` / `conversation.contactId` do payload (a doc confirma esses campos); ausente, cai para `POST /v1/contacts` criando um canal Instagram com o `participantId` (IGSID) e usa o id retornado.
+- `src/lib/automation-rules.ts`: valida `delayed_message` não vazio quando ligado (máx. 1000 caracteres) e `delayed_delay_minutes` entre 1 e 10080 (7 dias).
+- `src/components/automation-form.tsx`: bloco de UI com switch, textarea + contador, número + select de unidade convertendo para minutos, switch de "sair se responder" e aviso acima de 1380 minutos.
