@@ -5,7 +5,7 @@ import { getZernioApiBase } from "@/config/env.server";
 interface ZernioFetchOpts {
   apiKey: string;
   path: string;
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PATCH";
   body?: unknown;
   timeoutMs?: number;
 }
@@ -26,7 +26,7 @@ function isRetryableSendError(error: unknown): boolean {
   );
 }
 
-async function zernioFetch<T>({
+export async function zernioFetch<T>({
   apiKey,
   path,
   method = "GET",
