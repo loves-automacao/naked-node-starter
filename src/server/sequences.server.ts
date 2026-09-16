@@ -73,7 +73,39 @@ export async function enrollDelayedMessage(input: { automation: Automation; apiK
     if (!automation.zernio_sequence_id) throw new Error('Sequência não sincronizada. Salve a automação novamente.');
     if (!input.participantId && !input.contactId) throw new Error('Participante não identificado');
     const contactId = input.contactId || await resolveContact(apiKey, accountId, input.participantId);
-    const result = await zernioFetch({ apiKey, path: `/sequences/${encodeURIComponent(automation.zernio_sequence_id)}/enroll`, method: 'POST', body: { contactIds: [contactId] } });
+    const sequencePath = `/sequences/${encodeURIComponent(automation.zernio_sequence_id)}`;
+    type EnrollmentResult = {
+      enrolled?: number;
+      failed?: number;
+      results?: { contactId?: string; success?: boolean; error?: string }[];
+      success?: boolean;
+    };
+    const enroll = () => zernioFetch<EnrollmentResult>({
+      apiKey,
+      path: `${sequencePath}/enroll`,
+      method: 'POST',
+      body: { contactIds: [contactId] },
+    });
+
+    let result = await enroll();
+    const contactResult = result.results?.find(item => item.contactId === contactId) ?? result.results?.[0];
+    const alreadyEnrolled = contactResult?.success === false && contactResult.error?.toLowerCase().includes('already enrolled');
+
+    if (alreadyEnrolled) {
+      // Zernio keeps a contact enrolled after a previous trigger. Remove the old
+      // enrollment so a new trigger starts a fresh delay from this moment.
+      await zernioFetch({
+        apiKey,
+        path: `${sequencePath}/enroll/${encodeURIComponent(contactId)}`,
+        method: 'DELETE',
+      });
+      result = await enroll();
+    }
+
+    const failedResult = result.results?.find(item => item.success === false);
+    if ((result.failed ?? 0) > 0 || failedResult) {
+      throw new Error(failedResult?.error || 'A Zernio recusou a inscrição na sequência');
+    }
     await step.success({ apiResponse: result });
   } catch (error) {
     await step.fail(error);
