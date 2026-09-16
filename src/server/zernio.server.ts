@@ -5,7 +5,7 @@ import { getZernioApiBase } from "@/config/env.server";
 interface ZernioFetchOpts {
   apiKey: string;
   path: string;
-  method?: "GET" | "POST" | "PATCH";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
   timeoutMs?: number;
 }
