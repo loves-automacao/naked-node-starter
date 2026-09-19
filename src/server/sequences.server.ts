@@ -23,6 +23,8 @@ export async function syncSequence(db: SupabaseClient<Database>, row: Automation
     if (row.delayed_enabled) {
       const body = { name: row.name, steps: [{ order: 1, delayMinutes: row.delayed_delay_minutes, message: { text: row.delayed_message } }], exitOnReply: row.delayed_exit_on_reply, exitOnUnsubscribe: true };
       if (id) {
+        // Zernio only allows changing steps while the sequence is draft or paused.
+        await zernioFetch({ apiKey, path: `/sequences/${encodeURIComponent(id)}/pause`, method: 'POST' });
         await zernioFetch({ apiKey, path: `/sequences/${encodeURIComponent(id)}`, method: 'PATCH', body });
       } else {
         const result = await zernioFetch<{ sequence?: { id?: string } }>({ apiKey, path: '/sequences', method: 'POST', body: { ...body, profileId: await zernioGetProfileId(apiKey, settings.zernio_account_id), accountId: settings.zernio_account_id, platform: 'instagram' } });

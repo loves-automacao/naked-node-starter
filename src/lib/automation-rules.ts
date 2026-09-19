@@ -38,7 +38,7 @@ export function validateAutomationInput(input: AutomationInput): AutomationInput
     .filter(Boolean);
 
   const delayedMessage = input.delayed_message?.trim() ?? '';
-  const delayedMinutes = input.delayed_delay_minutes ?? 1440;
+  const delayedMinutes = input.delayed_delay_minutes ?? 1380;
   if (input.delayed_enabled && (!delayedMessage || delayedMessage.length > 1000)) throw new Error('Mensagem atrasada deve ter entre 1 e 1000 caracteres');
   if (!Number.isInteger(delayedMinutes) || delayedMinutes < 1 || delayedMinutes > 10080) throw new Error('Atraso deve ser entre 1 minuto e 7 dias');
   return {

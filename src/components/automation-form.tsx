@@ -60,7 +60,7 @@ export function AutomationForm({
   onSubmit,
 }: AutomationFormProps) {
   const navigate = useNavigate();
-  const [form, setForm] = useState<AutomationFormValues>({ delayed_enabled: false, delayed_message: '', delayed_delay_minutes: 1440, delayed_exit_on_reply: true, ...initialValues });
+  const [form, setForm] = useState<AutomationFormValues>({ delayed_enabled: false, delayed_message: '', delayed_delay_minutes: 1380, delayed_exit_on_reply: true, ...initialValues });
   const [delayUnit, setDelayUnit] = useState('1440');
 
   function update<K extends keyof AutomationFormValues>(key: K, value: AutomationFormValues[K]) {
@@ -490,10 +490,10 @@ export function AutomationForm({
           <span className="text-xs text-muted-foreground">{form.delayed_message?.length ?? 0}/1000 caracteres</span>
           <Label htmlFor="delayed-time">Enviar depois de</Label>
           <div className="flex gap-3">
-            <Input id="delayed-time" type="number" required min={1 / Number(delayUnit)} max={10080 / Number(delayUnit)} step="any" value={(form.delayed_delay_minutes ?? 1440) / Number(delayUnit)} onChange={e => update('delayed_delay_minutes', Math.round(Number(e.target.value) * Number(delayUnit)))} />
+            <Input id="delayed-time" type="number" required min={1 / Number(delayUnit)} max={10080 / Number(delayUnit)} step="any" value={(form.delayed_delay_minutes ?? 1380) / Number(delayUnit)} onChange={e => update('delayed_delay_minutes', Math.round(Number(e.target.value) * Number(delayUnit)))} />
             <Select value={delayUnit} onValueChange={setDelayUnit}><SelectTrigger aria-label="Unidade de tempo" className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1">Minutos</SelectItem><SelectItem value="60">Horas</SelectItem><SelectItem value="1440">Dias</SelectItem></SelectContent></Select>
           </div>
-          {(form.delayed_delay_minutes ?? 1440) > 1380 && <p role="alert" className="text-sm text-destructive">O Instagram pode recusar mensagens fora da janela de 24h após a última interação. Prefira menos de 23h; comentários não garantem a abertura dessa janela.</p>}
+          {(form.delayed_delay_minutes ?? 1380) > 1380 && <p role="alert" className="text-sm text-destructive">O Instagram pode recusar mensagens fora da janela de 24h após a última interação. Prefira menos de 23h; comentários não garantem a abertura dessa janela.</p>}
           <div className="flex items-center justify-between gap-3"><Label htmlFor="delayed-exit">Não enviar se a pessoa já tiver respondido</Label><Switch id="delayed-exit" checked={form.delayed_exit_on_reply} onCheckedChange={v => update('delayed_exit_on_reply', v)} /></div>
         </>}
       </section>
